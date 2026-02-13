@@ -9,7 +9,7 @@ from calibration import EyeCalibration
 
 class BlinkCounter:
     def __init__(self, video_path, model_path='face_landmarker.task'):
-        self.video_path = video_path
+        self.video_path = video_path # le video_path est la camera utiliser
 
         # Init avec tracker.py
         self.tracker = eye_tracker(model_path)
@@ -43,7 +43,7 @@ class BlinkCounter:
             self.frame_counter = 0
 
     def process_video(self):
-        cap = cv.VideoCapture(self.video_path)
+        cap = cv.VideoCapture(self.video_path) 
         w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 
