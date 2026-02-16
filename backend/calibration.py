@@ -1,5 +1,7 @@
 import cv2 as cv
 import numpy as np
+from playsound import playsound
+import threading
 
 class EyeCalibration:
     def __init__(self, frames_to_capture=50):
@@ -96,7 +98,10 @@ class EyeCalibration:
                 self.computed_threshold = (avg_open + avg_closed) / 2.0
                 
                 print(f"Calibration terminée. Seuil calculé : {self.computed_threshold:.4f}")
+                
                 self.current_state = self.STATE_FINISHED
+                play = threading.Thread(target=playsound, args=("../assets/completed.mp3",))
+                play.start()
                 return True # Indique que c'est fini
 
         return False
