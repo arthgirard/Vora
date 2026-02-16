@@ -1,3 +1,5 @@
+# eye_aspect_ratio, update_count et process_video sont trois fonctions fortement modifiées provenant de https://github.com/Pushtogithub23/Eye-Blink-Detection-using-MediaPipe-and-OpenCV/tree/master
+
 import cv2 as cv
 import mediapipe as mp
 import numpy as np
@@ -9,13 +11,13 @@ from calibration import EyeCalibration
 
 class BlinkCounter:
     def __init__(self, video_path, model_path='face_landmarker.task'):
-        self.video_path = video_path # le video_path est la camera utiliser
+        self.video_path = video_path # le video_path est la caméra utilisée
 
         # Init avec tracker.py
         self.tracker = eye_tracker(model_path)
         self.extractor = landmark_extract()
 
-        # Detection logic
+        # Logique de détection
         self.ear_threshold = 0.3 # Valeur par défaut, sera modifiée avec la calibration -A
         self.consec_frames = 2
         self.blink_counter = 0
@@ -25,7 +27,7 @@ class BlinkCounter:
         self.calibrator = EyeCalibration(frames_to_capture=40)
 
     def eye_aspect_ratio(self, eye_points):
-        # eye_points est une liste de dicts dans traceker.py
+        # eye_points est une liste de dicts dans tracker.py
         p = [pt['pixel'] for pt in eye_points]
         
         # Distances
