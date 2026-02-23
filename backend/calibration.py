@@ -1,3 +1,4 @@
+import os
 import cv2 as cv
 import numpy as np
 from playsound3 import playsound
@@ -100,7 +101,11 @@ class EyeCalibration:
                 print(f"Calibration terminée. Seuil calculé : {self.computed_threshold:.4f}")
                 
                 self.current_state = self.STATE_FINISHED
-                play = threading.Thread(target=playsound, args=("../assets/completed.mp3",))
+
+                # Son à la fin de la calibration
+                current_path = os.path.dirname(os.path.abspath(__file__))
+                path = os.path.join(current_path, "..", "assets", "completed.mp3")
+                play = threading.Thread(target=playsound, args=(path,))
                 play.start()
                 return True # Indique que c'est fini
 
