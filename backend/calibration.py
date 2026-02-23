@@ -1,8 +1,7 @@
 import os
 import cv2 as cv
 import numpy as np
-from playsound3 import playsound
-import threading
+from pygame import mixer
 
 class EyeCalibration:
     def __init__(self, frames_to_capture=50):
@@ -105,8 +104,10 @@ class EyeCalibration:
                 # Son à la fin de la calibration
                 current_path = os.path.dirname(os.path.abspath(__file__))
                 path = os.path.join(current_path, "..", "assets", "completed.mp3")
-                play = threading.Thread(target=playsound, args=(path,))
-                play.start()
+
+                mixer.init()
+                mixer.music.load(path)
+                mixer.music.play()
                 return True # Indique que c'est fini
 
         return False
