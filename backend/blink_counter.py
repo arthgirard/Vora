@@ -55,6 +55,7 @@ class BlinkCounter:
         
         t0 = time.monotonic()
 
+        last_timestamp = -1
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret: break
@@ -68,8 +69,14 @@ class BlinkCounter:
             
             # Calcul du timestamp pour le mode async
             timestamp = int((time.monotonic() - t0) * 1000)
-            # Async
-            self.tracker.landmarker.detect_async(mp_image, timestamp)
+
+            # On s'assure que le timestamp est strictement supérieur au précédent
+            if timestamp <= last_timestamp:
+                timestamp = last_timestamp + 1
+            last_timestamp = timestamp
+
+            # Async 
+            self.tracker.landmarker.detect_async(mp_image, timestamp) 
             
             # Récolte des données dans tracker.py
             latest = self.tracker.store.latest
