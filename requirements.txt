@@ -2,4 +2,4 @@ numpy
 opencv-python
 mediapipe
 customtkinter
-playsound
+playsound3
