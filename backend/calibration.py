@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-from playsound import playsound
+from playsound3 import playsound
 import threading
 
 class EyeCalibration:
