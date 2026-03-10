@@ -18,44 +18,50 @@ class BlinkCounter:
         self.extractor = landmark_extract()
 
         # Logique de détection
-        self.ear_threshold = 0.3 # Valeur par défaut, sera modifiée avec la calibration -A
-        self.consec_frames = 2
+        self.ear_history = []
+        self.history_length = 30
+        self.earm_threshold = 0.065 # sera écrasé avec la calibration 
+
+        self.consec_frames = 1 
+        self.max_blink_frames = 8 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
+
         self.blink_counter = 0
         self.frame_counter = 0
-        
-        # Calibration
-        self.calibrator = EyeCalibration(frames_to_capture=40)
+        self.is_ready = False
 
-    def eye_aspect_ratio(self, eye_points):
-        # eye_points est une liste de dicts dans tracker.py
-        p = [pt['pixel'] for pt in eye_points]
+        # Calibration du bruit
+        self.calibrator = EyeCalibration(frames_to_capture=100) # passé à 100 pour plus de précision 
         
+    def eye_aspect_ratio(self, eye_points):
         # Distances
+        p = [pt['pixel'] for pt in eye_points]
         A = np.linalg.norm(np.array(p[1]) - np.array(p[5]))
         B = np.linalg.norm(np.array(p[2]) - np.array(p[4]))
         C = np.linalg.norm(np.array(p[0]) - np.array(p[3]))
         return (A + B) / (2.0 * C)
 
-    def update_count(self, ear):
-        if ear < self.ear_threshold:
+    def update_count(self, current_earm):
+        # Détection du clignement avec le EARM
+        if current_earm > self.earm_threshold:
             self.frame_counter += 1
         else:
-            if self.frame_counter >= self.consec_frames:
+            if self.consec_frames <= self.frame_counter <= self.max_blink_frames:
                 self.blink_counter += 1
             self.frame_counter = 0
+
 
     def process_video(self):
         cap = cv.VideoCapture(self.video_path) 
         w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
         h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 
-        window_name = "Blink Counter Modular"
+        window_name = "Vora Blink Counter"
         cv.namedWindow(window_name, cv.WINDOW_NORMAL)
         cv.resizeWindow(window_name, 960, 540)
         
         t0 = time.monotonic()
-
         last_timestamp = -1
+
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret: break
@@ -69,8 +75,6 @@ class BlinkCounter:
             
             # Calcul du timestamp pour le mode async
             timestamp = int((time.monotonic() - t0) * 1000)
-
-            # On s'assure que le timestamp est strictement supérieur au précédent
             if timestamp <= last_timestamp:
                 timestamp = last_timestamp + 1
             last_timestamp = timestamp
@@ -94,30 +98,44 @@ class BlinkCounter:
                     l_ear = self.eye_aspect_ratio(l_data)
                     avg_ear = (r_ear + l_ear) / 2.0
 
-                    # Logique de calibration
-                    if not self.calibrator.is_complete():
-                        finished = self.calibrator.process(frame, avg_ear, key)
-                        if finished:
-                            self.ear_threshold = self.calibrator.get_threshold()
-                            print(f"Seuil: {self.ear_threshold}")
+                    # Gestion de l'historique et calcul du EARM
+                    self.ear_history.append(avg_ear)
+                    
+                    # On garde la liste à une taille maximale de 30
+                    if len(self.ear_history) > self.history_length:
+                        self.ear_history.pop(0)
+                    
+                    # Si la liste est pleine, on commence les calculs
+                    if len(self.ear_history) == self.history_length:
+                        self.is_ready = True
+                        sma_ear = sum(self.ear_history) / float(self.history_length)
+                        earm = sma_ear - avg_ear
+
+                        # Logique de calibration EARM
+                        if not self.calibrator.is_complete():
+                            finished = self.calibrator.process(frame, earm, key)
+                            if finished:
+                                self.earm_threshold = self.calibrator.get_threshold()
                         
-                        # Feedback visuel pour la calibration
-                        for pt in r_data + l_data:
-                            cv.circle(frame, pt['pixel'], 1, (0, 255, 255), -1)
+                        # Logique de comptage des clignements
+                        else:
+                            self.update_count(earm)
+                            
+                            # Affichage en mode comptage
+                            color = (0, 0, 255) if earm > self.earm_threshold else (0, 255, 0)
+                            cv.putText(frame, f"Clignements : {self.blink_counter}", (30, 50), 
+                                       cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                            cv.putText(frame, f"EARM: {earm:.3f} | Seuil: {self.earm_threshold:.3f}", (30, 90), 
+                                       cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
                     else:
-                        self.update_count(avg_ear)
-                        color = (0, 0, 255) if avg_ear < self.ear_threshold else (0, 255, 0)
+                        # Remplissage initial de l'historique
+                        cv.putText(frame, "Initialisation de la camera...", (30, 50), 
+                                   cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-                        # Dessin
-                        for pt in r_data + l_data:
-                            cv.circle(frame, pt['pixel'], 1, color, -1)
-                        
-                        # Affichage des infos
-                        cv.putText(frame, f"Clignements: {self.blink_counter}", (30, 50), 
-                                   cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                        cv.putText(frame, f"EAR: {avg_ear:.2f} | Seuil: {self.ear_threshold:.2f}", (30, 90), 
-                                   cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                    # Dessin des points
+                    for pt in r_data + l_data:
+                        cv.circle(frame, pt['pixel'], 1, (0, 255, 0), -1)
 
             cv.imshow(window_name, frame)
 
