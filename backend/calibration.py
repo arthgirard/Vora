@@ -1,30 +1,22 @@
 import os
 import cv2 as cv
 import numpy as np
-from pygame import mixer
 
 class EyeCalibration:
-    def __init__(self, frames_to_capture=50):
+    def __init__(self, frames_to_capture=100): # <-- Allongé à 100
         self.frames_to_capture = frames_to_capture
         
         # États
         self.STATE_IDLE = 0
-        self.STATE_OPEN = 1
-        self.STATE_WAIT = 2
-        self.STATE_CLOSED = 3
-        self.STATE_FINISHED = 4
+        self.STATE_MEASURE_NOISE = 1 
+        self.STATE_FINISHED = 2
         
         self.current_state = self.STATE_IDLE
         
         # Données
-        self.open_ears = []
-        self.closed_ears = []
+        self.earm_measurements = []
         self.computed_threshold = None
         
-        # Compteurs pour les délais
-        self.wait_counter = 0
-        self.WAIT_FRAMES = 40 
-
         # Couleurs UI
         self.YELLOW = (0, 255, 255)
         self.GREEN = (86, 241, 13)
@@ -40,10 +32,10 @@ class EyeCalibration:
         """Helper pour dessiner l'interface"""
         h, w = frame.shape[:2]
         
-        # Fond sombre semi-transparent pour lisibilité
+        # Fond beaucoup plus transparent et moins large
         overlay = frame.copy()
-        cv.rectangle(overlay, (0, h//2 - 50), (w, h//2 + 50), (0, 0, 0), -1)
-        cv.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
+        cv.rectangle(overlay, (0, h//2 - 40), (w, h//2 + 40), (0, 0, 0), -1)
+        cv.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
         
         # Texte principal
         (tw, th), _ = cv.getTextSize(text, cv.FONT_HERSHEY_SIMPLEX, 1, 2)
@@ -53,61 +45,35 @@ class EyeCalibration:
         # Sous-texte
         if subtext:
             (stw, sth), _ = cv.getTextSize(subtext, cv.FONT_HERSHEY_SIMPLEX, 0.7, 2)
-            cv.putText(frame, subtext, ((w - stw) // 2, h // 2 + 35),
+            cv.putText(frame, subtext, ((w - stw) // 2, h // 2 + 25),
                        cv.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
 
-    def process(self, frame, current_ear, key_pressed):
-        """
-        Fonction principale appelée à chaque frame.
-        Retourne True si la calibration vient de se terminer.
-        """
+    def process(self, frame, current_earm, key_pressed):
         
         if self.current_state == self.STATE_IDLE:
-            self._draw_ui(frame, "CALIBRATION REQUISE", "Appuyez sur 'c' pour commencer", self.YELLOW)
+            # nouvelle méthode pour le earm
+            self._draw_ui(frame, "CALIBRATION DES ANGLES", "Appuyez sur 'c' pour commencer", self.YELLOW)
             if key_pressed == ord('c'):
-                self.open_ears = [] # Reset
-                self.current_state = self.STATE_OPEN
+                self.earm_measurements = [] 
+                self.current_state = self.STATE_MEASURE_NOISE 
 
-        elif self.current_state == self.STATE_OPEN:
-            self.open_ears.append(current_ear)
-            prog = len(self.open_ears)
-            self._draw_ui(frame, "GARDEZ LES YEUX OUVERTS", f"Mesure : {prog}/{self.frames_to_capture}", self.GREEN)
+        elif self.current_state == self.STATE_MEASURE_NOISE: 
+            self.earm_measurements.append(current_earm)
+            prog = len(self.earm_measurements)
             
-            if len(self.open_ears) >= self.frames_to_capture:
-                self.current_state = self.STATE_WAIT
-                self.wait_counter = 0
-
-        elif self.current_state == self.STATE_WAIT:
-            self.wait_counter += 1
-            # On demande à l'utilisateur de fermer les yeux, mais on n'enregistre pas encore
-            self._draw_ui(frame, "FERMEZ LES YEUX MAINTENANT !", "Preparation...", self.BLUE)
+            self._draw_ui(frame, "REGARDEZ FIXEMENT LA CAMERA", f"Mesure : {prog}/{self.frames_to_capture} (Ne clignez pas)", self.BLUE)
             
-            if self.wait_counter >= self.WAIT_FRAMES:
-                self.closed_ears = [] # Reset
-                self.current_state = self.STATE_CLOSED
-
-        elif self.current_state == self.STATE_CLOSED:
-            self.closed_ears.append(current_ear)
-            prog = len(self.closed_ears)
-            self._draw_ui(frame, "MAINTENEZ LES YEUX FERMES", f"Mesure : {prog}/{self.frames_to_capture}", self.BLUE)
-
-            if len(self.closed_ears) >= self.frames_to_capture:
-                # CALCUL FINAL
-                avg_open = np.mean(self.open_ears)
-                avg_closed = np.mean(self.closed_ears)
-                self.computed_threshold = (avg_open + avg_closed) / 2.0
+            if len(self.earm_measurements) >= self.frames_to_capture:
+                # calcul des angles
+                max_angle_noise = np.percentile(self.earm_measurements, 95)
                 
-                print(f"Calibration terminée. Seuil calculé : {self.computed_threshold:.4f}")
+                base_noise = max(0.01, max_angle_noise)
+                self.computed_threshold = base_noise + 0.015 # il faut majorer pour éviter d'être pile dessus 
+                
+                print(f"Calibration terminée. Bruit extrême : {base_noise:.4f}")
+                print(f"Nouveau seuil EARM calculé : {self.computed_threshold:.4f}")
                 
                 self.current_state = self.STATE_FINISHED
-
-                # Son à la fin de la calibration
-                current_path = os.path.dirname(os.path.abspath(__file__))
-                path = os.path.join(current_path, "..", "assets", "completed.mp3")
-
-                mixer.init()
-                mixer.music.load(path)
-                mixer.music.play()
-                return True # Indique que c'est fini
+                return True 
 
         return False
