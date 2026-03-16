@@ -3,6 +3,7 @@ import os
 from notifypy import Notify
 
 audio_path = os.path.join("..", "assets", "notif.wav")
+icon_path = os.path.join("..", "assets", "icon.svg")
 
 class ErgoTimer:
     def __init__(self):
@@ -10,7 +11,8 @@ class ErgoTimer:
         self.notifier = Notify()
         self.notifier.title = "Il est temps de prendre une pause."
         self.notifier.message = "Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
-        self.notifier.audio = audio_path 
+        self.notifier.audio = audio_path
+        self.notifier.icon = icon_path
         
         self.screen_time = 0.0
         self.absence_start = None

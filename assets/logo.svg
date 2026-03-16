@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 120">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&amp;display=swap');
+      
+      .title { 
+        font-family: 'Space Grotesk', sans-serif; 
+        font-size: 46px; 
+        font-weight: 700; 
+        fill: #1a202c; 
+        letter-spacing: 8px; 
+      }
+      
+    </style>
+    <linearGradient id="techCyanH" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00c6ff" />
+      <stop offset="100%" stop-color="#0072ff" />
+    </linearGradient>
+    <linearGradient id="wellnessGreenH" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#11998e" />
+      <stop offset="100%" stop-color="#38ef7d" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(20, 15) scale(0.75)">
+    <circle cx="60" cy="60" r="24" fill="url(#techCyanH)" opacity="0.85"/>
+    <circle cx="60" cy="60" r="6" fill="#ffffff" />
+
+    <path d="M 22 60 C 35 100 85 100 98 60" fill="none" stroke="#2c3e50" stroke-width="10" stroke-linecap="round"/>
+
+    <path d="M 22 48 L 60 80 L 98 48" fill="none" stroke="url(#wellnessGreenH)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <circle cx="22" cy="48" r="4.5" fill="#0072ff" />
+    <circle cx="60" cy="80" r="4.5" fill="#0072ff" />
+    <circle cx="98" cy="48" r="4.5" fill="#0072ff" />
+  </g>
+
+  <text x="125" y="80" class="title">VORA</text>
+</svg>
+
