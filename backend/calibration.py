@@ -68,7 +68,7 @@ class EyeCalibration:
                 max_angle_noise = np.percentile(self.earm_measurements, 95)
                 
                 base_noise = max(0.01, max_angle_noise)
-                self.computed_threshold = base_noise + 0.015 # il faut majorer pour éviter d'être pile dessus 
+                self.computed_threshold = base_noise + 0.005 # il faut majorer pour éviter d'être pile dessus 
                 
                 print(f"Calibration terminée. Bruit extrême : {base_noise:.4f}")
                 print(f"Nouveau seuil EARM calculé : {self.computed_threshold:.4f}")
