@@ -8,6 +8,7 @@ import time
 # imports custom
 from tracker import eye_tracker, landmark_extract
 from calibration import EyeCalibration
+from ergo_timer import ErgoTimer
 
 class BlinkCounter:
     def __init__(self, video_path, model_path='face_landmarker.task'):
@@ -16,6 +17,7 @@ class BlinkCounter:
         # Init avec tracker.py
         self.tracker = eye_tracker(model_path)
         self.extractor = landmark_extract()
+        self.ergo_timer = ErgoTimer()
 
         # Logique de détection
         self.ear_history = []
@@ -84,10 +86,12 @@ class BlinkCounter:
             
             # Récolte des données dans tracker.py
             latest = self.tracker.store.latest
+            face_detected = False
 
             if latest:
                 result, _ = latest
                 if result.face_landmarks:
+                    face_detected = True
                     landmarks = result.face_landmarks[0]
                     
                     # Extraction des données
@@ -138,6 +142,7 @@ class BlinkCounter:
                         cv.circle(frame, pt['pixel'], 1, (0, 255, 0), -1)
 
             cv.imshow(window_name, frame)
+            self.ergo_timer.update(face_detected)
 
         cap.release()
         cv.destroyAllWindows()
