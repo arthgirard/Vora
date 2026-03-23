@@ -26,13 +26,18 @@ class BlinkCounter:
 
         self.consec_frames = 1 
         self.max_blink_frames = 8 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
-
+        
+        
         self.blink_counter = 0
+        self.nb_blink_total_minute = [0, 0]
+        self.nb_blink_minute = []   #historique de la frequence chaque minute
+        self.freq_stamp = 0
+
         self.frame_counter = 0
         self.is_ready = False
-
         # Calibration du bruit
         self.calibrator = EyeCalibration(frames_to_capture=100) # passé à 100 pour plus de précision 
+
         
     def eye_aspect_ratio(self, eye_points):
         # Distances
@@ -51,6 +56,24 @@ class BlinkCounter:
                 self.blink_counter += 1
             self.frame_counter = 0
 
+    def get_freq_data(self, start, calibration_complete):
+        if calibration_complete:
+            elapse = time.monotonic() - start
+            # print(elapse)
+
+
+            if int(elapse) == 60 and self.freq_stamp!=1:
+                self.nb_blink_total_minute.append(self.blink_counter)
+                self.nb_blink_minute.append(self.blink_counter)
+                self.freq_stamp = 1
+                # print(self.nb_blink_minute[-1])# pour le debugging
+
+            elif int(elapse)%60 == 0 and (int(elapse)/60 != self.freq_stamp):
+                self.nb_blink_total_minute.append(self.blink_counter) 
+                self.nb_blink_minute.append(self.nb_blink_total_minute[-1]-self.nb_blink_total_minute[-2]) 
+                self.freq_stamp = int(elapse)/60
+                # print(self.nb_blink_minute[-1])# pour le debugging
+
 
     def process_video(self):
         cap = cv.VideoCapture(self.video_path) 
@@ -63,8 +86,12 @@ class BlinkCounter:
         
         t0 = time.monotonic()
         last_timestamp = -1
+        start_timer_freq = time.monotonic()
 
         while cap.isOpened():
+
+            self.get_freq_data(start_timer_freq, self.calibrator.is_complete()) 
+             
             ret, frame = cap.read()
             if not ret: break
             
@@ -81,12 +108,15 @@ class BlinkCounter:
                 timestamp = last_timestamp + 1
             last_timestamp = timestamp
 
+
             # Async 
             self.tracker.landmarker.detect_async(mp_image, timestamp) 
             
             # Récolte des données dans tracker.py
             latest = self.tracker.store.latest
             face_detected = False
+
+
 
             if latest:
                 result, _ = latest
@@ -123,15 +153,17 @@ class BlinkCounter:
                         
                         # Logique de comptage des clignements
                         else:
+                                
                             self.update_count(earm)
-                            
                             # Affichage en mode comptage
                             color = (0, 0, 255) if earm > self.earm_threshold else (0, 255, 0)
                             cv.putText(frame, f"Clignements : {self.blink_counter}", (30, 50), 
                                        cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                             cv.putText(frame, f"EARM: {earm:.3f} | Seuil: {self.earm_threshold:.3f}", (30, 90), 
                                        cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-
+                                
+                                
+                                 
                     else:
                         # Remplissage initial de l'historique
                         cv.putText(frame, "Initialisation de la camera...", (30, 50), 
