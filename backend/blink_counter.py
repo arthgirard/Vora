@@ -19,14 +19,19 @@ class BlinkCounter:
         self.extractor = landmark_extract()
         self.ergo_timer = ErgoTimer()
 
-        # Logique de détection
+        # Logique de détection, version améliorée avec double moyennes mobiles
         self.ear_history = []
-        self.history_length = 30
-        self.earm_threshold = 0.065 # sera écrasé avec la calibration 
+        self.slow_history_length = 30 # baseline
+        self.fast_history_length = 3 # filtre anti-grain
 
-        self.consec_frames = 1 
-        self.max_blink_frames = 8 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
-        
+        self.earm_threshold_close = None
+        self.earm_threshold_open = None
+
+        # Machine à états
+        self.is_blinking = False
+        self.blink_duration = 0
+        self.min_blink_frames = 1
+        self.max_blink_frames = 12 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
         
         self.blink_counter = 0
         self.nb_blink_total_minute = [0, 0]
@@ -36,25 +41,29 @@ class BlinkCounter:
         self.frame_counter = 0
         self.is_ready = False
         # Calibration du bruit
-        self.calibrator = EyeCalibration(frames_to_capture=100) # passé à 100 pour plus de précision 
-
+        self.calibrator = EyeCalibration(frames_noise=100, frames_blinks=150)
         
     def eye_aspect_ratio(self, eye_points):
         # Distances
-        p = [pt['pixel'] for pt in eye_points]
+        p = [pt['normalized'] for pt in eye_points]
         A = np.linalg.norm(np.array(p[1]) - np.array(p[5]))
         B = np.linalg.norm(np.array(p[2]) - np.array(p[4]))
         C = np.linalg.norm(np.array(p[0]) - np.array(p[3]))
         return (A + B) / (2.0 * C)
 
-    def update_count(self, current_earm):
-        # Détection du clignement avec le EARM
-        if current_earm > self.earm_threshold:
-            self.frame_counter += 1
+    def update_count(self, earm):
+        if not self.is_blinking:
+            if earm > self.earm_threshold_close:
+                self.blink_duration = 1
+                self.is_blinking = True
         else:
-            if self.consec_frames <= self.frame_counter <= self.max_blink_frames:
-                self.blink_counter += 1
-            self.frame_counter = 0
+            self.blink_duration += 1
+            if earm < self.earm_threshold_open:
+                if self.min_blink_frames <= self.blink_duration <= self.max_blink_frames:
+                    self.blink_counter += 1
+                # Réinitialisation
+                self.is_blinking = False
+                self.blink_duration = 0
 
     def get_freq_data(self, start, calibration_complete):
         if calibration_complete:
@@ -136,34 +145,34 @@ class BlinkCounter:
                     self.ear_history.append(avg_ear)
                     
                     # On garde la liste à une taille maximale de 30
-                    if len(self.ear_history) > self.history_length:
+                    if len(self.ear_history) > self.slow_history_length:
                         self.ear_history.pop(0)
                     
                     # Si la liste est pleine, on commence les calculs
-                    if len(self.ear_history) == self.history_length:
+                    if len(self.ear_history) == self.slow_history_length:
                         self.is_ready = True
-                        sma_ear = sum(self.ear_history) / float(self.history_length)
-                        earm = sma_ear - avg_ear
 
-                        # Logique de calibration EARM
+                        slow_sma = sum(self.ear_history) / float(self.slow_history_length)
+                        fast_sma = sum(self.ear_history[-self.fast_history_length:]) / float(self.fast_history_length)
+
+                        earm = slow_sma - fast_sma
+                        # print(earm)
+
                         if not self.calibrator.is_complete():
                             finished = self.calibrator.process(frame, earm, key)
                             if finished:
-                                self.earm_threshold = self.calibrator.get_threshold()
-                        
-                        # Logique de comptage des clignements
+                                self.earm_threshold_close, self.earm_threshold_open = self.calibrator.get_thresholds()
                         else:
-                                
+                            print(f"EARM instantané: {earm:.4f}")
                             self.update_count(earm)
-                            # Affichage en mode comptage
-                            color = (0, 0, 255) if earm > self.earm_threshold else (0, 255, 0)
-                            cv.putText(frame, f"Clignements : {self.blink_counter}", (30, 50), 
-                                       cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                            cv.putText(frame, f"EARM: {earm:.3f} | Seuil: {self.earm_threshold:.3f}", (30, 90), 
-                                       cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                                
-                                
-                                 
+
+                        # Affichage en mode comptage
+                        color = (0, 0, 255) if self.is_blinking else (0, 255, 0)
+                        cv.putText(frame, f"Clignements : {self.blink_counter}", (30, 50), 
+                                   cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                        cv.putText(frame, f"EARM: {earm:.3f} | Seuil: {slow_sma:.3f}", (30, 90), 
+                                   cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
                     else:
                         # Remplissage initial de l'historique
                         cv.putText(frame, "Initialisation de la camera...", (30, 50), 
