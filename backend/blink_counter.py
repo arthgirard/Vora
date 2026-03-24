@@ -163,7 +163,6 @@ class BlinkCounter:
                             if finished:
                                 self.earm_threshold_close, self.earm_threshold_open = self.calibrator.get_thresholds()
                         else:
-                            print(f"EARM instantané: {earm:.4f}")
                             self.update_count(earm)
 
                         # Affichage en mode comptage
