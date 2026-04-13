@@ -27,14 +27,14 @@ class BlinkCounter:
         # Calibration
         self.recent_blink_peaks = []
 
-        self.earm_threshold_close = 0.15
-        self.earm_threshold_open = 0.03
+        self.earm_threshold_close = 0.08
+        self.earm_threshold_open = 0.025
 
         # Machine à états
         self.is_blinking = False
         self.blink_duration = 0
         self.current_blink_max = 0.0
-        self.min_blink_frames = 1
+        self.min_blink_frames = 3
         self.max_blink_frames = 15 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
         
         self.blink_counter = 0
