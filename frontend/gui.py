@@ -1,162 +1,168 @@
 import customtkinter as ctk
 
-# ================= APP =================
-class App(ctk.CTk):
+# ================= CONFIGURATION OPTIMISÉE =================
+COLORS = {
+    "app_bg": ("#F3F3F3", "#202020"), 
+    "container_bg": ("#FFFFFF", "#1C1C1C"),
+    "hover_bg": ("#E5E5E5", "#2D2D2D"),
+    "border_color": ("#E0E0E0", "#2D2D2D"),
+    "active_bg": ("#EBEBEB", "#323232"),
+    "accent": "#0078D4",
+    "text": ("#000000", "#FFFFFF"),
+    "switch_bg": ("#E0E0E0", "#000000"),
+}
 
+class Fonts:
+    @classmethod
+    def init(cls):
+        cls.MAIN = ctk.CTkFont(family="Segoe UI Variable", size=13)
+        cls.BOLD = ctk.CTkFont(family="Segoe UI Variable", size=13, weight="bold")
+        cls.TITLE = ctk.CTkFont(family="Segoe UI Variable", size=18, weight="bold")
+        cls.TOPBAR = ctk.CTkFont(family="Segoe UI Variable", size=18, weight="bold")
+        cls.SMALL_BOLD = ctk.CTkFont(family="Segoe UI Variable", size=10, weight="bold")
+
+# ================= WIDGETS =================
+
+class SidebarItem(ctk.CTkFrame):
+    def __init__(self, master, text, command):
+        super().__init__(master, fg_color="transparent", corner_radius=6, cursor="hand2")
+        self.command = command
+        self._active = False
+
+        self.indicator = ctk.CTkFrame(self, width=4, height=20, corner_radius=2, fg_color="transparent")
+        self.indicator.pack(side="left", padx=(0, 15), pady=12)
+
+        self.label = ctk.CTkLabel(self, text=text, font=Fonts.MAIN, text_color=COLORS["text"], anchor="w")
+        self.label.pack(side="left", fill="x", expand=True)
+
+        for w in [self, self.label, self.indicator]:
+            w.bind("<Enter>", self._on_enter)
+            widget_callback = lambda e: self.command()
+            w.bind("<Button-1>", widget_callback)
+            w.bind("<Leave>", self._on_leave)
+
+    def set_active(self, active):
+        self._active = active
+        self.configure(fg_color=COLORS["active_bg"] if active else "transparent")
+        self.indicator.configure(fg_color=COLORS["accent"] if active else "transparent")
+        self.label.configure(font=Fonts.BOLD if active else Fonts.MAIN)
+
+    def _on_enter(self, e):
+        if not self._active: self.configure(fg_color=COLORS["hover_bg"])
+    def _on_leave(self, e):
+        if not self._active: self.configure(fg_color="transparent")
+
+class ThemeToggle(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master, fg_color=COLORS["switch_bg"], corner_radius=15, height=30, width=90)
+        self.state = ctk.get_appearance_mode()
+        
+        self.label = ctk.CTkLabel(self, text="", font=Fonts.SMALL_BOLD, text_color=("black", "white"))
+        self.knob = ctk.CTkFrame(self, width=22, height=22, corner_radius=11, fg_color="white")
+        
+        self.update_ui()
+        for w in [self, self.label, self.knob]:
+            w.bind("<Button-1>", self.toggle)
+
+    def update_ui(self):
+        if self.state == "Light":
+            self.label.configure(text="Sombre") 
+            self.label.place(relx=0.42, rely=0.5, anchor="center")
+            self.knob.place(relx=0.82, rely=0.5, anchor="center")
+        else:
+            self.label.configure(text="Clair") 
+            self.label.place(relx=0.58, rely=0.5, anchor="center")
+            self.knob.place(relx=0.18, rely=0.5, anchor="center")
+
+    def toggle(self, e=None):
+        self.state = "Dark" if self.state == "Light" else "Light"
+        ctk.set_appearance_mode(self.state)
+        self.update_ui()
+
+# ================= APPLICATION PRINCIPALE =================
+
+class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+        Fonts.init()
 
-        self.geometry("1280x720")
+        self.geometry("960x540")
         self.title("Vora")
+        self.configure(fg_color=COLORS["app_bg"])
 
-        ctk.set_appearance_mode("Light")
-        ctk.set_widget_scaling(1.0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
         self.pages = {}
-        self.buttons = {}
-        self.active_page = "Démarrage"
+        self.sidebar_buttons = {}
+        self.current_page = None
 
-        # Sidebar animée
-        self.sidebar_width = 220
-        self.sidebar_hidden_width = 10
-        self.sidebar_current_width = self.sidebar_hidden_width
-        self.sidebar_anim_speed = 20
+        self._setup_ui()
+        self.show_page("Démarrage")
 
-        self.create_layout()
-        self.create_pages()
-        self.create_sidebar_buttons()
-        self.show_page(self.active_page)
+    def _setup_ui(self):
+        sidebar_cont = ctk.CTkFrame(self, fg_color="transparent")
+        sidebar_cont.grid(row=0, column=0, sticky="nsew", padx=(10, 0), pady=10)
+        
+        self.sidebar = ctk.CTkFrame(sidebar_cont, width=220, corner_radius=12, fg_color=COLORS["app_bg"])
+        self.sidebar.pack(fill="both", expand=True)
+        self.sidebar.pack_propagate(False)
 
-    # ================= LAYOUT =================
-    def create_layout(self):
-        self.sidebar = ctk.CTkFrame(self, width=self.sidebar_hidden_width, corner_radius=10)
-        self.sidebar.pack(side="left", fill="y")
+        ctk.CTkLabel(self.sidebar, text="≡  Vora", font=Fonts.TITLE, anchor="w").pack(fill="x", padx=20, pady=(20, 25))
 
-        ctk.CTkLabel(self.sidebar, text="MENU", font=("Manrope", 25, "bold")).pack(pady=20)
+        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_container.grid(row=0, column=1, sticky="nsew", padx=15, pady=10)
 
-        self.main_container = ctk.CTkFrame(self)
-        self.main_container.pack(side="right", expand=True, fill="both")
-
-    # ================= SIDEBAR ANIMATION =================
-    def expand_sidebar(self, event=None):
-        if self.sidebar_current_width < self.sidebar_width:
-            self.sidebar_current_width += self.sidebar_anim_speed
-            if self.sidebar_current_width > self.sidebar_width:
-                self.sidebar_current_width = self.sidebar_width
-            self.sidebar.configure(width=self.sidebar_current_width)
-            self.after(10, self.expand_sidebar)
-
-    # ================= PAGES =================
-    def create_pages(self):
         for name in ["Démarrage", "Analyse", "Paramètres"]:
-            frame = ctk.CTkFrame(self.main_container)
-            ctk.CTkLabel(frame, text=f"Page {name}", font=("Manrope", 28, "bold")).pack(pady=40)
-            self.pages[name] = frame
+            btn = SidebarItem(self.sidebar, name, lambda n=name: self.show_page(n))
+            btn.pack(fill="x", pady=2, padx=10)
+            self.sidebar_buttons[name] = btn
+            
+            page_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
+            self._build_page_structure(page_frame, name)
+            self.pages[name] = page_frame
 
-        # Bouton test Démarrage
-        ctk.CTkButton(
-            self.pages["Démarrage"],
-            text="Bouton Démarrage",
-            font=("Manrope", 14, "bold"),
-            command=self.start_application
-        ).pack(pady=20)
+        ThemeToggle(self.sidebar).pack(side="bottom", pady=25, padx=20, anchor="w")
 
-        # ===== CONTENU PARAMETRES =====
-        ctk.CTkLabel(self.pages["Paramètres"], text="Thème", font=("Manrope", 16, "bold")).pack(pady=10)
+    def _build_page_structure(self, parent, name):
+        topbar = ctk.CTkFrame(parent, fg_color=COLORS["container_bg"], height=65, corner_radius=10, border_width=1, border_color=COLORS["border_color"])
+        topbar.pack(fill="x", pady=(0, 10))
+        topbar.pack_propagate(False)
 
-        self.light_btn = ctk.CTkButton(
-            self.pages["Paramètres"],
-            text="Light Mode",
-            command=lambda: self.set_theme("Light")
-        )
-        self.light_btn.pack(pady=5)
+        ctk.CTkLabel(topbar, text=name, font=Fonts.TOPBAR, text_color=COLORS["text"]).pack(side="left", padx=20)
 
-        self.dark_btn = ctk.CTkButton(
-            self.pages["Paramètres"],
-            text="Dark Mode",
-            command=lambda: self.set_theme("Dark")
-        )
-        self.dark_btn.pack(pady=5)
-
-        ctk.CTkLabel(self.pages["Paramètres"], text="UI Scaling", font=("Manrope", 16, "bold")).pack(pady=10)
-
-        scaling_option = ctk.CTkOptionMenu(
-            self.pages["Paramètres"],
-            values=["80%", "90%", "100%", "110%", "120%"],
-            command=self.change_scaling
-        )
-        scaling_option.set("100%")
-        scaling_option.pack(pady=5)
-
-    # ================= SIDEBAR BUTTONS =================
-    def create_sidebar_buttons(self):
-        for name in self.pages:
-            btn = ctk.CTkButton(
-                self.sidebar,
-                text=name,
-                font=("Manrope", 14, "bold"),
-                command=lambda n=name: self.change_page(n)
+        if name == "Démarrage":
+            self.run_btn = ctk.CTkButton(
+                topbar, 
+                text="+ Exécuter une tâche", 
+                font=Fonts.BOLD, 
+                height=32, 
+                fg_color="transparent", 
+                border_width=1, 
+                border_color=COLORS["border_color"],
+                text_color=COLORS["text"], 
+                hover_color=COLORS["hover_bg"], 
+                command=self.run_backend_logic
             )
-            btn.pack(pady=10, padx=20, fill="x")
-            self.buttons[name] = btn
+            self.run_btn.pack(side="right", padx=20)
 
-        # ===== QUITTER =====
-        self.quit_btn = ctk.CTkButton(
-            self.sidebar,
-            text="Quitter",
-            font=("Manrope", 14, "bold"),
-            command=self.confirm_quit
-        )
-        self.quit_btn.pack(pady=(40, 20), padx=20, fill="x")
-
-    # ================= PAGE MANAGEMENT =================
-    def change_page(self, name):
-        self.show_page(name)
+        ctk.CTkFrame(parent, fg_color=COLORS["container_bg"], corner_radius=10, 
+                     border_width=1, border_color=COLORS["border_color"]).pack(fill="both", expand=True)
 
     def show_page(self, name):
-        self.active_page = name
-        for page in self.pages.values():
-            page.pack_forget()
-        self.pages[name].pack(expand=True, fill="both")
-        self.apply_colors()
+        if self.current_page == name: return
 
-    # ================= COLORS =================
-    def update_colors(self):
-        if ctk.get_appearance_mode() == "Dark":
-            self.sidebar.configure(fg_color="#1A1A2E")
-            return {"normal": "#3399FF", "hover": "#66B2FF", "active": "#003F7F", "text": "white"}
-        else:
-            self.sidebar.configure(fg_color="#F0F0F0")
-            return {"normal": "#1A8CFF", "hover": "#4DA6FF", "active": "#005EA6", "text": "white"}
+        if self.current_page:
+            self.pages[self.current_page].pack_forget()
+            self.sidebar_buttons[self.current_page].set_active(False)
 
-    def apply_colors(self):
-        colors = self.update_colors()
-        for name, btn in self.buttons.items():
-            if name == self.active_page:
-                btn.configure(fg_color=colors["active"], hover_color=colors["hover"], text_color=colors["text"])
-            else:
-                btn.configure(fg_color=colors["normal"], hover_color=colors["hover"], text_color=colors["text"])
-        self.quit_btn.configure(fg_color=colors["normal"], hover_color=colors["hover"], text_color=colors["text"])
+        self.pages[name].pack(fill="both", expand=True)
+        self.sidebar_buttons[name].set_active(True)
+        self.current_page = name
 
-    # ================= SETTINGS =================
-    def set_theme(self, mode):
-        ctk.set_appearance_mode(mode)
-        self.apply_colors()
+    def run_backend_logic(self):
+        print("Démarrage")
 
-    def change_scaling(self, value):
-        scaling = int(value.replace("%", "")) / 100
-        ctk.set_widget_scaling(scaling)
-
-    # ================= QUIT =================
-    def confirm_quit(self):
-        self.quit()
-
-    # ================= DEMARRAGE =================
-    def start_application(self):
-        print("Démarrage de l'application lancé !")
-
-
-# ================= START =================
 if __name__ == "__main__":
     app = App()
     app.mainloop()
