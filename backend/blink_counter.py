@@ -44,6 +44,9 @@ class BlinkCounter:
 
         self.frame_counter = 0
         
+        # Ajout d'une variable de contrôle pour que le thread s'arrête proprement avec Flet
+        self.running = True
+        
     def eye_aspect_ratio(self, eye_points):
         # Distances
         p = []
@@ -120,7 +123,8 @@ class BlinkCounter:
         last_timestamp = -1
         start_timer_freq = time.monotonic()
 
-        while cap.isOpened():
+        # Ajout de la condition 'self.running' pour lier l'exécution à l'état du frontend
+        while cap.isOpened() and self.running:
 
             self.get_freq_data(start_timer_freq) 
              
@@ -200,6 +204,13 @@ class BlinkCounter:
 
         cap.release()
         cv.destroyAllWindows()
+        
+        # S'assurer que le statut de fonctionnement est mis à jour à la fermeture
+        self.running = False
+
+    # Ajout d'une méthode pour arrêter explicitement la caméra depuis le frontend
+    def stop(self):
+        self.running = False
 
 if __name__ == "__main__":
     app = BlinkCounter(0)

@@ -1,5 +1,5 @@
 numpy
 opencv-python
 mediapipe
-customtkinter
+flet
 notify-py

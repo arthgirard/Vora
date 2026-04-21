@@ -1,168 +1,248 @@
-import customtkinter as ctk
+import flet as ft
+import threading
+import sys
+import os
 
-# ================= CONFIGURATION OPTIMISÉE =================
+# ajout du chemin du backend
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
+try:
+    from blink_counter import BlinkCounter
+except ImportError:
+    BlinkCounter = None
+
 COLORS = {
-    "app_bg": ("#F3F3F3", "#202020"), 
-    "container_bg": ("#FFFFFF", "#1C1C1C"),
-    "hover_bg": ("#E5E5E5", "#2D2D2D"),
-    "border_color": ("#E0E0E0", "#2D2D2D"),
-    "active_bg": ("#EBEBEB", "#323232"),
+    "app_bg": {ft.ThemeMode.LIGHT: "#F3F3F3", ft.ThemeMode.DARK: "#202020"},
+    "container_bg": {ft.ThemeMode.LIGHT: "#FFFFFF", ft.ThemeMode.DARK: "#1C1C1C"},
+    "hover_bg": {ft.ThemeMode.LIGHT: "#E5E5E5", ft.ThemeMode.DARK: "#2D2D2D"},
+    "border_color": {ft.ThemeMode.LIGHT: "#E0E0E0", ft.ThemeMode.DARK: "#2D2D2D"},
+    "active_bg": {ft.ThemeMode.LIGHT: "#EBEBEB", ft.ThemeMode.DARK: "#323232"},
     "accent": "#0078D4",
-    "text": ("#000000", "#FFFFFF"),
-    "switch_bg": ("#E0E0E0", "#000000"),
+    "text": {ft.ThemeMode.LIGHT: "#000000", ft.ThemeMode.DARK: "#FFFFFF"},
+    "switch_bg": {ft.ThemeMode.LIGHT: "#E0E0E0", ft.ThemeMode.DARK: "#000000"},
 }
 
-class Fonts:
-    @classmethod
-    def init(cls):
-        cls.MAIN = ctk.CTkFont(family="Segoe UI Variable", size=13)
-        cls.BOLD = ctk.CTkFont(family="Segoe UI Variable", size=13, weight="bold")
-        cls.TITLE = ctk.CTkFont(family="Segoe UI Variable", size=18, weight="bold")
-        cls.TOPBAR = ctk.CTkFont(family="Segoe UI Variable", size=18, weight="bold")
-        cls.SMALL_BOLD = ctk.CTkFont(family="Segoe UI Variable", size=10, weight="bold")
+def get_color(key, mode):
+    val = COLORS.get(key)
+    if isinstance(val, dict):
+        return val[mode]
+    return val
 
-# ================= WIDGETS =================
+def create_border(width, color):
+    # creation de bordure securisee pour eviter les modules deprecies
+    side = ft.BorderSide(width, color)
+    return ft.Border(top=side, bottom=side, left=side, right=side)
 
-class SidebarItem(ctk.CTkFrame):
-    def __init__(self, master, text, command):
-        super().__init__(master, fg_color="transparent", corner_radius=6, cursor="hand2")
-        self.command = command
-        self._active = False
-
-        self.indicator = ctk.CTkFrame(self, width=4, height=20, corner_radius=2, fg_color="transparent")
-        self.indicator.pack(side="left", padx=(0, 15), pady=12)
-
-        self.label = ctk.CTkLabel(self, text=text, font=Fonts.MAIN, text_color=COLORS["text"], anchor="w")
-        self.label.pack(side="left", fill="x", expand=True)
-
-        for w in [self, self.label, self.indicator]:
-            w.bind("<Enter>", self._on_enter)
-            widget_callback = lambda e: self.command()
-            w.bind("<Button-1>", widget_callback)
-            w.bind("<Leave>", self._on_leave)
-
-    def set_active(self, active):
-        self._active = active
-        self.configure(fg_color=COLORS["active_bg"] if active else "transparent")
-        self.indicator.configure(fg_color=COLORS["accent"] if active else "transparent")
-        self.label.configure(font=Fonts.BOLD if active else Fonts.MAIN)
-
-    def _on_enter(self, e):
-        if not self._active: self.configure(fg_color=COLORS["hover_bg"])
-    def _on_leave(self, e):
-        if not self._active: self.configure(fg_color="transparent")
-
-class ThemeToggle(ctk.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master, fg_color=COLORS["switch_bg"], corner_radius=15, height=30, width=90)
-        self.state = ctk.get_appearance_mode()
-        
-        self.label = ctk.CTkLabel(self, text="", font=Fonts.SMALL_BOLD, text_color=("black", "white"))
-        self.knob = ctk.CTkFrame(self, width=22, height=22, corner_radius=11, fg_color="white")
-        
-        self.update_ui()
-        for w in [self, self.label, self.knob]:
-            w.bind("<Button-1>", self.toggle)
-
-    def update_ui(self):
-        if self.state == "Light":
-            self.label.configure(text="Sombre") 
-            self.label.place(relx=0.42, rely=0.5, anchor="center")
-            self.knob.place(relx=0.82, rely=0.5, anchor="center")
-        else:
-            self.label.configure(text="Clair") 
-            self.label.place(relx=0.58, rely=0.5, anchor="center")
-            self.knob.place(relx=0.18, rely=0.5, anchor="center")
-
-    def toggle(self, e=None):
-        self.state = "Dark" if self.state == "Light" else "Light"
-        ctk.set_appearance_mode(self.state)
-        self.update_ui()
-
-# ================= APPLICATION PRINCIPALE =================
-
-class App(ctk.CTk):
-    def __init__(self):
+class SidebarItem(ft.Container):
+    def __init__(self, text, on_click, is_active=False, mode=ft.ThemeMode.LIGHT):
         super().__init__()
-        Fonts.init()
-
-        self.geometry("960x540")
-        self.title("Vora")
-        self.configure(fg_color=COLORS["app_bg"])
-
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-
-        self.pages = {}
-        self.sidebar_buttons = {}
-        self.current_page = None
-
-        self._setup_ui()
-        self.show_page("Démarrage")
-
-    def _setup_ui(self):
-        sidebar_cont = ctk.CTkFrame(self, fg_color="transparent")
-        sidebar_cont.grid(row=0, column=0, sticky="nsew", padx=(10, 0), pady=10)
+        self.text_val = text
+        self.on_click_action = on_click
+        self.is_active = is_active
+        self.mode = mode
         
-        self.sidebar = ctk.CTkFrame(sidebar_cont, width=220, corner_radius=12, fg_color=COLORS["app_bg"])
-        self.sidebar.pack(fill="both", expand=True)
-        self.sidebar.pack_propagate(False)
+        self.border_radius = 6
+        self.padding = 8
+        self.on_hover = self._hover
+        self.on_click = self._click
+        
+        self.indicator = ft.Container(
+            width=4, 
+            height=20, 
+            border_radius=2, 
+            bgcolor=get_color("accent", self.mode) if is_active else ft.Colors.TRANSPARENT
+        )
+        
+        self.label = ft.Text(
+            value=text, 
+            color=get_color("text", self.mode),
+            size=13,
+            weight=ft.FontWeight.BOLD if is_active else ft.FontWeight.NORMAL
+        )
+        
+        self.content = ft.Row([self.indicator, self.label], alignment=ft.MainAxisAlignment.START)
+        self.bgcolor = get_color("active_bg", self.mode) if is_active else ft.Colors.TRANSPARENT
 
-        ctk.CTkLabel(self.sidebar, text="≡  Vora", font=Fonts.TITLE, anchor="w").pack(fill="x", padx=20, pady=(20, 25))
+    def _hover(self, e):
+        # gestion du survol
+        if not self.is_active:
+            self.bgcolor = get_color("hover_bg", self.mode) if e.data == "true" else ft.Colors.TRANSPARENT
+            self.update()
 
-        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_container.grid(row=0, column=1, sticky="nsew", padx=15, pady=10)
+    def _click(self, e):
+        # gestion du clic
+        self.on_click_action(self.text_val)
 
+    def set_active(self, active, mode):
+        # mise a jour de l'etat actif
+        self.is_active = active
+        self.mode = mode
+        self.bgcolor = get_color("active_bg", self.mode) if active else ft.Colors.TRANSPARENT
+        self.indicator.bgcolor = get_color("accent", self.mode) if active else ft.Colors.TRANSPARENT
+        self.label.weight = ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL
+        self.label.color = get_color("text", self.mode)
+        self.update()
+
+class App:
+    def __init__(self, page: ft.Page):
+        self.page = page
+        self.page.title = "Vora"
+        self.page.window.width = 960
+        self.page.window.height = 540
+        self.page.padding = 15
+        self.page.theme_mode = ft.ThemeMode.LIGHT
+        self.page.bgcolor = get_color("app_bg", self.page.theme_mode)
+        self.page.fonts = {"Segoe UI Variable": "Segoe UI Variable"}
+        self.page.theme = ft.Theme(font_family="Segoe UI Variable")
+        
+        self.current_page = "Démarrage"
+        self.sidebar_items = {}
+        
+        self.backend_thread = None
+        self.backend_instance = None
+
+        self.build_ui()
+
+    def build_ui(self):
+        # bascule de theme
+        self.theme_btn = ft.Container(
+            content=ft.Text("Sombre", size=10, weight="bold", color=get_color("text", self.page.theme_mode)),
+            bgcolor=get_color("switch_bg", self.page.theme_mode),
+            border_radius=15,
+            width=90,
+            height=30,
+            alignment=ft.Alignment(0, 0),
+            on_click=self.toggle_theme
+        )
+
+        # création du logo avec une référence pour changer la couleur plus tard
+        self.logo_img = ft.Image(
+                src = "logo_black.png",
+                height = 40,
+                fit="contain",
+                )
+
+        # barre laterale
+        sidebar_content = ft.Column(
+            controls=[
+                ft.Container(
+                   content=self.logo_img,
+                   padding=10
+                )
+            ],
+            expand=True
+        )
+        
         for name in ["Démarrage", "Analyse", "Paramètres"]:
-            btn = SidebarItem(self.sidebar, name, lambda n=name: self.show_page(n))
-            btn.pack(fill="x", pady=2, padx=10)
-            self.sidebar_buttons[name] = btn
-            
-            page_frame = ctk.CTkFrame(self.main_container, fg_color="transparent")
-            self._build_page_structure(page_frame, name)
-            self.pages[name] = page_frame
+            item = SidebarItem(name, self.change_page, is_active=(name == self.current_page), mode=self.page.theme_mode)
+            self.sidebar_items[name] = item
+            sidebar_content.controls.append(item)
 
-        ThemeToggle(self.sidebar).pack(side="bottom", pady=25, padx=20, anchor="w")
+        sidebar_content.controls.append(ft.Container(expand=True))
+        sidebar_content.controls.append(self.theme_btn)
 
-    def _build_page_structure(self, parent, name):
-        topbar = ctk.CTkFrame(parent, fg_color=COLORS["container_bg"], height=65, corner_radius=10, border_width=1, border_color=COLORS["border_color"])
-        topbar.pack(fill="x", pady=(0, 10))
-        topbar.pack_propagate(False)
+        self.sidebar = ft.Container(
+            content=sidebar_content,
+            width=220,
+            bgcolor=ft.Colors.TRANSPARENT
+        )
 
-        ctk.CTkLabel(topbar, text=name, font=Fonts.TOPBAR, text_color=COLORS["text"]).pack(side="left", padx=20)
-
-        if name == "Démarrage":
-            self.run_btn = ctk.CTkButton(
-                topbar, 
-                text="+ Exécuter une tâche", 
-                font=Fonts.BOLD, 
-                height=32, 
-                fg_color="transparent", 
-                border_width=1, 
-                border_color=COLORS["border_color"],
-                text_color=COLORS["text"], 
-                hover_color=COLORS["hover_bg"], 
-                command=self.run_backend_logic
+        # barre superieure
+        self.topbar_title = ft.Text(self.current_page, size=18, weight="bold", color=get_color("text", self.page.theme_mode))
+        
+        # bouton avec 'content' au lieu de 'text' pour compatibilite
+        self.run_btn = ft.OutlinedButton(
+            content=ft.Text("▶︎ Lancer"),
+            on_click=self.run_backend,
+            style=ft.ButtonStyle(
+                color=get_color("text", self.page.theme_mode),
+                shape=ft.RoundedRectangleBorder(radius=6),
+                side=ft.BorderSide(1, get_color("border_color", self.page.theme_mode))
             )
-            self.run_btn.pack(side="right", padx=20)
+        )
 
-        ctk.CTkFrame(parent, fg_color=COLORS["container_bg"], corner_radius=10, 
-                     border_width=1, border_color=COLORS["border_color"]).pack(fill="both", expand=True)
+        border_color = get_color("border_color", self.page.theme_mode)
 
-    def show_page(self, name):
-        if self.current_page == name: return
+        self.topbar = ft.Container(
+            content=ft.Row([self.topbar_title, self.run_btn], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+            height=65,
+            bgcolor=get_color("container_bg", self.page.theme_mode),
+            border_radius=10,
+            border=create_border(1, border_color),
+            padding=20
+        )
 
-        if self.current_page:
-            self.pages[self.current_page].pack_forget()
-            self.sidebar_buttons[self.current_page].set_active(False)
+        # conteneur principal
+        self.main_content = ft.Container(
+            bgcolor=get_color("container_bg", self.page.theme_mode),
+            border_radius=10,
+            border=create_border(1, border_color),
+            expand=True
+        )
 
-        self.pages[name].pack(fill="both", expand=True)
-        self.sidebar_buttons[name].set_active(True)
+        main_col = ft.Column([self.topbar, self.main_content], expand=True)
+        self.layout = ft.Row([self.sidebar, main_col], expand=True)
+        
+        self.page.add(self.layout)
+
+    def change_page(self, name):
+        # changement de page
+        if name == self.current_page: return
         self.current_page = name
+        
+        for item_name, item in self.sidebar_items.items():
+            item.set_active(item_name == name, self.page.theme_mode)
+            
+        self.topbar_title.value = name
+        self.run_btn.visible = (name == "Démarrage")
+        self.page.update()
 
-    def run_backend_logic(self):
-        print("Démarrage")
+    def toggle_theme(self, e):
+        # bascule entre mode clair et sombre
+        self.page.theme_mode = ft.ThemeMode.DARK if self.page.theme_mode == ft.ThemeMode.LIGHT else ft.ThemeMode.LIGHT
+        self.page.bgcolor = get_color("app_bg", self.page.theme_mode)
+        
+        mode = self.page.theme_mode
+        self.theme_btn.bgcolor = get_color("switch_bg", mode)
+        self.theme_btn.content.value = "Clair" if mode == ft.ThemeMode.DARK else "Sombre"
+        self.theme_btn.content.color = get_color("text", mode)
+        
+        # changer la couleur du logo
+        if mode == ft.ThemeMode.DARK:
+            self.logo_img.src = "logo_white.png"
+        else:
+            self.logo_img.src = "logo_black.png"
+        
+        for item in self.sidebar_items.values():
+            item.set_active(item.is_active, mode)
+            
+        border_color = get_color("border_color", mode)
+            
+        self.topbar.bgcolor = get_color("container_bg", mode)
+        self.topbar.border = create_border(1, border_color)
+        self.topbar_title.color = get_color("text", mode)
+        
+        self.run_btn.style.color = get_color("text", mode)
+        self.run_btn.style.side = ft.BorderSide(1, border_color)
+
+        self.main_content.bgcolor = get_color("container_bg", mode)
+        self.main_content.border = create_border(1, border_color)
+
+        self.page.update()
+
+    def run_backend(self, e):
+        # demarrage de la logique en arriere-plan
+        if self.backend_thread is None or not self.backend_thread.is_alive():
+            if BlinkCounter is not None:
+                self.backend_instance = BlinkCounter(0)
+                # thread en arriere-plan pour ne pas bloquer l'interface
+                self.backend_thread = threading.Thread(target=self.backend_instance.process_video, daemon=True)
+                self.backend_thread.start()
+            else:
+                print("Modules backend manquants.")
+
+def main(page: ft.Page):
+    App(page)
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    # l'argument assets_dir permet a flet de trouver logo.png dans le dossier parent
+    ft.app(target=main, assets_dir="../assets")

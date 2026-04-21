@@ -3,7 +3,7 @@ import os
 from notifypy import Notify
 
 audio_path = os.path.join("..", "assets", "notif.wav")
-icon_path = os.path.join("..", "assets", "icon.svg")
+icon_path = os.path.join("..", "assets", "icon.png")
 
 class ErgoTimer:
     def __init__(self):
