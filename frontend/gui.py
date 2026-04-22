@@ -245,4 +245,4 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     # l'argument assets_dir permet a flet de trouver logo.png dans le dossier parent
-    ft.app(target=main, assets_dir="../assets")
+    ft.run(main, assets_dir="../assets")
