@@ -5,6 +5,9 @@ import cv2 as cv
 import mediapipe as mp
 import numpy as np
 import time
+import base64
+import threading as _threading
+import platform
 
 # imports custom
 from tracker import eye_tracker, landmark_extract
@@ -13,6 +16,10 @@ from ergo_timer import ErgoTimer
 class BlinkCounter:
     def __init__(self, video_path, model_path='face_landmarker.task'):
         self.video_path = video_path # le video_path est la caméra utilisée
+
+        # dernière frame encodée en base64, lue par la boucle async du frontend
+        self._frame_lock = _threading.Lock()
+        self.latest_frame = None
 
         # Init avec tracker.py
         self.tracker = eye_tracker(model_path)
@@ -96,7 +103,6 @@ class BlinkCounter:
         elapse = time.monotonic() - start
         # print(elapse)
 
-
         if int(elapse) == 60 and self.freq_stamp!=1:
             self.nb_blink_total_minute.append(self.blink_counter)
             self.nb_blink_minute.append(self.blink_counter)
@@ -111,13 +117,25 @@ class BlinkCounter:
 
 
     def process_video(self):
-        cap = cv.VideoCapture(self.video_path) 
+        systeme = platform.system()
+        
+        # Forcer l'utilisation du bon driver pour qu'OpenCV respecte l'index
+        if systeme == 'Windows':
+            cap = cv.VideoCapture(self.video_path, cv.CAP_DSHOW)
+        elif systeme == 'Linux':
+            # Sur Linux, passer le chemin explicite est beaucoup plus fiable
+            if isinstance(self.video_path, int) or str(self.video_path).isdigit():
+                cap = cv.VideoCapture(f"/dev/video{self.video_path}", cv.CAP_V4L2)
+            else:
+                cap = cv.VideoCapture(self.video_path, cv.CAP_V4L2)
+        else: # macOS (Darwin)
+            cap = cv.VideoCapture(self.video_path, cv.CAP_AVFOUNDATION)
+            
+        # reduit le buffer opencv a 1 pour eviter le lag de la video
+        cap.set(cv.CAP_PROP_BUFFERSIZE, 1)
+
         self.w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
         self.h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
-
-        window_name = "Vora Blink Counter"
-        cv.namedWindow(window_name, cv.WINDOW_NORMAL)
-        cv.resizeWindow(window_name, 960, 540)
         
         t0 = time.monotonic()
         last_timestamp = -1
@@ -130,9 +148,6 @@ class BlinkCounter:
              
             ret, frame = cap.read()
             if not ret: break
-            
-            key = cv.waitKey(1) & 0xFF
-            if key == ord('q'): break
 
             # Conversion MediaPipe
             rgb_frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
@@ -151,8 +166,6 @@ class BlinkCounter:
             # Récolte des données dans tracker.py
             latest = self.tracker.store.latest
             face_detected = False
-
-
 
             if latest:
                 result, _ = latest
@@ -199,11 +212,15 @@ class BlinkCounter:
                     for pt in r_data + l_data:
                         cv.circle(frame, pt['pixel'], 1, (0, 255, 0), -1)
 
-            cv.imshow(window_name, frame)
+            # encodage de la frame et dépôt pour lecture par le frontend
+            _, buffer = cv.imencode('.jpg', frame, [cv.IMWRITE_JPEG_QUALITY, 70])
+            b64 = base64.b64encode(buffer).decode('utf-8')
+            with self._frame_lock:
+                self.latest_frame = b64
+
             self.ergo_timer.update(face_detected)
 
         cap.release()
-        cv.destroyAllWindows()
         
         # S'assurer que le statut de fonctionnement est mis à jour à la fermeture
         self.running = False
@@ -211,7 +228,3 @@ class BlinkCounter:
     # Ajout d'une méthode pour arrêter explicitement la caméra depuis le frontend
     def stop(self):
         self.running = False
-
-if __name__ == "__main__":
-    app = BlinkCounter(0)
-    app.process_video()
