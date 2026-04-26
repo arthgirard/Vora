@@ -7,7 +7,6 @@ import numpy as np
 import time
 import base64
 import threading as _threading
-import platform
 
 # imports custom
 from tracker import eye_tracker, landmark_extract
@@ -21,8 +20,7 @@ from matplotlib.animation import FuncAnimation
 
 
 class BlinkCounter:
-    def __init__(self, video_path, model_path='face_landmarker.task'):
-        self.video_path = video_path # le video_path est la caméra utilisée
+    def __init__(self, model_path='face_landmarker.task'):
 
         # dernière frame encodée en base64, lue par la boucle async du frontend
         self._frame_lock = _threading.Lock()
@@ -132,19 +130,7 @@ class BlinkCounter:
             self.freq_stamp = current_minute
 
     def process_video(self):
-        systeme = platform.system()
-        
-        # Forcer l'utilisation du bon driver pour qu'OpenCV respecte l'index
-        if systeme == 'Windows':
-            cap = cv.VideoCapture(self.video_path, cv.CAP_DSHOW)
-        elif systeme == 'Linux':
-            # Sur Linux, passer le chemin explicite est beaucoup plus fiable
-            if isinstance(self.video_path, int) or str(self.video_path).isdigit():
-                cap = cv.VideoCapture(f"/dev/video{self.video_path}", cv.CAP_V4L2)
-            else:
-                cap = cv.VideoCapture(self.video_path, cv.CAP_V4L2)
-        else: # macOS (Darwin)
-            cap = cv.VideoCapture(self.video_path, cv.CAP_AVFOUNDATION)
+        cap = cv.VideoCapture(0)
             
         # reduit le buffer opencv a 1 pour eviter le lag de la video
         cap.set(cv.CAP_PROP_BUFFERSIZE, 1)
