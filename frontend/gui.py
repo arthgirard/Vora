@@ -5,6 +5,15 @@ import asyncio
 import sys
 import os
 import time
+import sqlite3
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# utilisation du backend non-interactif pour flet
+matplotlib.use("agg")
 
 # ajout du chemin du backend
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
@@ -108,6 +117,9 @@ class App:
         self.affichage_pause = False
 
         self.build_ui()
+        
+        # lancement de la boucle d'actualisation des graphiques
+        self.page.run_task(self._boucle_analyse)
 
     def build_ui(self):
         mode = self.page.theme_mode
@@ -195,6 +207,13 @@ class App:
             expand=True,
         )
 
+        # page d'analyse, avec un container pour permettre l'expansion du layout grid interne
+        self.analyse_content = ft.Container(
+            content=self._build_analyse(mode),
+            expand=True,
+            visible=False,
+        )
+
         # page de paramètres - cachée par défaut
         self.settings_content = ft.Column(
             controls=[self._build_settings(mode)],
@@ -203,7 +222,7 @@ class App:
             scroll=ft.ScrollMode.AUTO,
         )
 
-        # conteneur principal avec pile placeholder / flux vidéo / paramètres
+        # conteneur principal avec pile placeholder / flux vidéo / analyse / paramètres
         self.main_content = ft.Container(
             content=ft.Stack(
                 [
@@ -219,9 +238,14 @@ class App:
                         clip_behavior=ft.ClipBehavior.HARD_EDGE,
                     ),
                     ft.Container(
+                        content=self.analyse_content,
+                        expand=True,
+                        padding=ft.Padding.only(top=10, left=10, right=10, bottom=10),
+                    ),
+                    ft.Container(
                         content=self.settings_content,
                         expand=True,
-                        padding=ft.padding.only(top=10, left=20, right=20, bottom=10),
+                        padding=ft.Padding.only(top=10, left=20, right=20, bottom=10),
                     ),
                 ],
                 expand=True,
@@ -238,6 +262,141 @@ class App:
         self.layout = ft.Row([self.sidebar, main_col], expand=True)
 
         self.page.add(self.layout)
+
+    def _build_analyse(self, mode):
+        # creation des figures matplotlib avec un ratio adapte au layout grid
+        self.fig1, self.ax1 = plt.subplots(figsize=(4, 3))
+        self.fig2, self.ax2 = plt.subplots(figsize=(4, 3))
+        self.fig3, self.ax3 = plt.subplots(figsize=(8, 3))
+
+        self._style_plots(mode)
+
+        # Creation des images Flet avec des Data URI pre-generees pour eviter toute erreur ou image cassee
+        self.chart1 = ft.Image(src=self._get_chart_base64(self.fig1), expand=True, fit=ft.BoxFit.CONTAIN)
+        self.chart2 = ft.Image(src=self._get_chart_base64(self.fig2), expand=True, fit=ft.BoxFit.CONTAIN)
+        self.chart3 = ft.Image(src=self._get_chart_base64(self.fig3), expand=True, fit=ft.BoxFit.CONTAIN)
+
+        # disposition en grille: moitie haute = chart1 et chart2, moitie basse = chart3
+        row_top = ft.Row([
+            ft.Container(content=self.chart1, expand=True, alignment=ft.Alignment(0, 0)),
+            ft.Container(content=self.chart2, expand=True, alignment=ft.Alignment(0, 0))
+        ], expand=True)
+
+        row_bottom = ft.Row([
+            ft.Container(content=self.chart3, expand=True, alignment=ft.Alignment(0, 0))
+        ], expand=True)
+
+        return ft.Column([row_top, row_bottom], expand=True, spacing=10)
+
+    def _style_plots(self, mode):
+        # reaffectation des labels a chaque mise a jour car clear() les supprime
+        self.ax1.set_title("Fréquence des clignements")
+        self.ax1.set_xlabel("Minute")
+        self.ax1.set_ylabel("Clignements")
+
+        self.ax2.set_title("Fiabilité de la détection")
+        self.ax2.set_xlabel("Minute")
+        self.ax2.set_ylabel("Fiabilité")
+        self.ax2.set_ylim(-0.1, 1.1)
+
+        self.ax3.set_title("Indicateur de fatigue")
+        self.ax3.set_xlabel("Minute")
+        self.ax3.set_ylabel("Fatigue")
+        self.ax3.set_ylim(-0.1, 1.1)
+
+        # application des couleurs du theme aux graphiques
+        text_color = get_color("text", mode)
+        bg_color = get_color("container_bg", mode)
+        
+        for ax in [self.ax1, self.ax2, self.ax3]:
+            ax.tick_params(colors=text_color)
+            ax.xaxis.label.set_color(text_color)
+            ax.yaxis.label.set_color(text_color)
+            ax.title.set_color(text_color)
+            for spine in ax.spines.values():
+                spine.set_color(text_color)
+            ax.set_facecolor(bg_color)
+            
+        for fig in [self.fig1, self.fig2, self.fig3]:
+            fig.patch.set_facecolor(bg_color)
+            fig.tight_layout()
+
+    def _get_chart_base64(self, fig):
+        # sauvegarde propre d'une figure au format data uri
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", bbox_inches="tight", facecolor=fig.get_facecolor())
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{b64}"
+
+    def _refresh_chart_images(self, update=True):
+        # mise a jour du parametre src avec la version encodee la plus recente
+        for fig, chart in zip([self.fig1, self.fig2, self.fig3], [self.chart1, self.chart2, self.chart3]):
+            chart.src = self._get_chart_base64(fig)
+            if update and chart.page:
+                chart.update()
+
+    def _update_graphs(self):
+        # recherche robuste pour trouver la base de donnees, peu importe d'ou le script est lance
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        db_paths = [
+            os.path.join(base_dir, 'backend', 'data_blinks.db'),
+            os.path.join(base_dir, 'frontend', 'data_blinks.db'),
+            os.path.join(base_dir, 'data_blinks.db'),
+            os.path.abspath('data_blinks.db')
+        ]
+        
+        db_path = next((p for p in db_paths if os.path.exists(p)), None)
+
+        if not db_path:
+            return
+
+        try:
+            # timeout pour eviter les erreurs si le backend ecrit en meme temps
+            conn = sqlite3.connect(db_path, timeout=5)
+            cursor = conn.cursor()
+            
+            # selection de la table la plus recente
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name DESC LIMIT 1;")
+            tables = cursor.fetchall()
+            
+            if not tables:
+                conn.close()
+                return
+            
+            table_name = tables[0][0]
+            df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
+            conn.close()
+
+            if df.empty:
+                return
+
+            x = df.iloc[:, 0]
+            accent_color = get_color("accent", self.page.theme_mode)
+
+            self.ax1.clear()
+            self.ax2.clear()
+            self.ax3.clear()
+
+            # securite: on s'assure que les colonnes existent avant de les dessiner
+            if len(df.columns) > 1:
+                self.ax1.plot(x, df.iloc[:, 1], color=accent_color, marker='o')
+            if len(df.columns) > 2:
+                self.ax2.plot(x, df.iloc[:, 2], color='green', drawstyle='steps-mid', marker='o')
+            if len(df.columns) > 3:
+                self.ax3.plot(x, df.iloc[:, 3], color='red', drawstyle='steps-mid', marker='o')
+
+            self._style_plots(self.page.theme_mode)
+            self._refresh_chart_images()
+
+        except Exception as e:
+            print(f"Erreur d'actualisation des graphiques: {e}")
+
+    async def _boucle_analyse(self):
+        # boucle asynchrone pour rafraichir les graphiques
+        while True:
+            if self.current_page == "Analyse":
+                self._update_graphs()
+            await asyncio.sleep(2)
 
     def _build_settings(self, mode):
         # construit le contenu de la page paramètres et stocke les refs nécessaires au thème
@@ -283,6 +442,7 @@ class App:
     def _afficher_flux(self):
         # bascule de l'affichage vers le flux vidéo
         self.settings_content.visible = False
+        self.analyse_content.visible = False
         self.placeholder.visible = False
         self.video_feed.visible = True
         self.main_content.update()
@@ -290,6 +450,7 @@ class App:
     def _afficher_placeholder(self):
         # bascule de l'affichage vers le placeholder
         self.settings_content.visible = False
+        self.analyse_content.visible = False
         self.video_feed.visible = False
         self.placeholder.visible = True
         self.main_content.update()
@@ -297,8 +458,17 @@ class App:
     def _afficher_parametres(self):
         # bascule de l'affichage vers la page de paramètres
         self.video_feed.visible = False
+        self.analyse_content.visible = False
         self.placeholder.visible = False
         self.settings_content.visible = True
+        self.main_content.update()
+
+    def _afficher_analyse(self):
+        # bascule de l'affichage vers la page d'analyse
+        self.video_feed.visible = False
+        self.placeholder.visible = False
+        self.settings_content.visible = False
+        self.analyse_content.visible = True
         self.main_content.update()
 
     def change_page(self, name):
@@ -319,6 +489,10 @@ class App:
                 self._afficher_flux()
             else:
                 self._afficher_placeholder()
+        elif name == "Analyse":
+            self.affichage_pause = True
+            self._afficher_analyse()
+            self._update_graphs() # force la mise a jour
         elif name == "Paramètres":
             # suspendre le flux et afficher les paramètres
             self.affichage_pause = True
@@ -369,6 +543,11 @@ class App:
         self.settings_label_mode_sombre.color = get_color("text", mode)
         self.settings_section_apparence.bgcolor = get_color("container_bg", mode)
         self.settings_section_apparence.border = create_border(1, border_color)
+
+        # mise a jour du theme des graphiques
+        if hasattr(self, 'fig1'):
+            self._style_plots(mode)
+            self._refresh_chart_images()
 
         self.page.update()
 
