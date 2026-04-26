@@ -26,7 +26,15 @@ class ErgoTimer:
         self.needs_break = False
         self.notification_sent = False
         
-        self.LOW_BLINK_THRESHOLD = seuil # seuil : en bas de 10=yeux fatigués 
+        self._low_blink_threshold = seuil # seuil : en bas de 10=yeux fatigués
+
+    @property
+    def LOW_BLINK_THRESHOLD(self):
+        return self._low_blink_threshold
+
+    @LOW_BLINK_THRESHOLD.setter
+    def LOW_BLINK_THRESHOLD(self, value):
+        self._low_blink_threshold = value
 
     def update(self, face_detected: bool):
         current_time = time.monotonic()

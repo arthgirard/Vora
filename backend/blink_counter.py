@@ -30,10 +30,7 @@ class BlinkCounter:
         self.tracker = eye_tracker(model_path)
         self.extractor = landmark_extract()
         self.blink_database = Manager()
-        self.seuil_fatigue=10
-        self.ergo_timer = ErgoTimer(db_manager=self.blink_database,seuil=self.seuil_fatigue)
-
-
+        
         # Logique de détection, version améliorée avec double moyennes mobiles
         self.ear_history = []
         self.slow_history_length = 30 # baseline
@@ -52,8 +49,6 @@ class BlinkCounter:
         self.min_blink_frames = 3
         self.max_blink_frames = 15 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
        
-        
-        
         self.blink_counter = 0
         self.nb_blink_total_minute = 0
         self.freq_stamp = 0 
@@ -63,7 +58,20 @@ class BlinkCounter:
         # Ajout d'une variable de contrôle pour que le thread s'arrête proprement avec Flet
         self.running = True
         
-        #pour la donner aberrante:
+        # Initialisation du timer ergo
+        self._seuil_clignements = 10
+        self.ergo_timer = ErgoTimer(db_manager=self.blink_database, seuil=self._seuil_clignements)
+
+    @property
+    def seuil_clignements(self):
+        return self._seuil_clignements
+
+    @seuil_clignements.setter
+    def seuil_clignements(self, value):
+        self._seuil_clignements = value
+        # Sécurité pour s'assurer que ergo_timer existe avant de modifier son attribut
+        if hasattr(self, 'ergo_timer'):
+            self.ergo_timer.LOW_BLINK_THRESHOLD = value
 
     def eye_aspect_ratio(self, eye_points):
         # Distances
@@ -121,8 +129,7 @@ class BlinkCounter:
             if self.ergo_timer.absence_start is not None:
                 is_reliable = 0
             
-        
-            is_low = 1 if self.nb_blink_minute < self.seuil_fatigue else 0
+            is_low = 1 if self.nb_blink_minute < self.seuil_clignements else 0
             # On logue avec le marquer
             self.blink_database.minute_log(current_minute, self.nb_blink_minute, is_reliable, is_low)
         
@@ -160,7 +167,6 @@ class BlinkCounter:
                 timestamp = last_timestamp + 1
             last_timestamp = timestamp
 
-
             # Async 
             self.tracker.landmarker.detect_async(mp_image, timestamp) 
             
@@ -194,7 +200,6 @@ class BlinkCounter:
                         fast_sma = sum(self.ear_history[-self.fast_history_length:]) / float(self.fast_history_length)
 
                         earm = slow_sma - fast_sma
-                        # print(earm)
 
                         self.update_count(earm)
                         

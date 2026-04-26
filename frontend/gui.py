@@ -115,6 +115,8 @@ class App:
         self.backend_instance = None
         # pause de l'affichage quand l'utilisateur change d'onglet
         self.affichage_pause = False
+        # seuil de clignements par minute (10 = faible sensibilité, 15 = haute)
+        self.seuil_clignements = 10
 
         self.build_ui()
         
@@ -459,10 +461,54 @@ class App:
             padding=16,
         )
 
+        # section détection : slider de sensibilité des alertes de clignement
+        self.settings_label_detection = ft.Text("Détection", size=11, weight=ft.FontWeight.W_600, color=get_color("text_subtle", mode))
+        self.settings_label_sensibilite = ft.Text("Sensibilité des alertes de clignement", size=13, color=get_color("text", mode))
+        self.settings_label_seuil_valeur = ft.Text(
+            f"Seuil : {self.seuil_clignements} clignements / minute",
+            size=12,
+            color=get_color("text_subtle", mode)
+        )
+
+        self.seuil_slider = ft.Slider(
+            min=10, max=15, divisions=5, value=self.seuil_clignements,
+            active_color=get_color("accent", mode),
+            inactive_color=get_color("border_color", mode),
+            expand=True,
+            on_change=self._on_seuil_change,
+        )
+
+        self.settings_section_detection = ft.Container(
+            content=ft.Column([
+                self.settings_label_detection,
+                ft.Container(height=8),
+                ft.Row([self.settings_label_sensibilite], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                self.settings_label_seuil_valeur,
+                ft.Container(height=4),
+                ft.Row([
+                    ft.Text("Faible", size=11, color=get_color("text_subtle", mode)),
+                    self.seuil_slider,
+                    ft.Text("Haute",  size=11, color=get_color("text_subtle", mode)),
+                ], vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ], spacing=0),
+            bgcolor=get_color("container_bg", mode),
+            border=create_border(1, border_color),
+            border_radius=8,
+            padding=16,
+        )
+
         return ft.Column(
-            [self.settings_section_apparence],
+            [self.settings_section_apparence, ft.Container(height=12), self.settings_section_detection],
             spacing=0,
         )
+
+    def _on_seuil_change(self, e):
+        # mise a jour du seuil et de l'etiquette affichee
+        self.seuil_clignements = int(e.control.value)
+        self.settings_label_seuil_valeur.value = f"Seuil : {self.seuil_clignements} clignements / minute"
+        self.settings_label_seuil_valeur.update()
+        if self.backend_instance:
+            self.backend_instance.seuil_clignements = self.seuil_clignements
 
     async def _boucle_affichage(self, instance_cible):
         # La boucle vérifie désormais SON instance, et s'arrêtera proprement
@@ -580,6 +626,14 @@ class App:
         self.settings_section_apparence.bgcolor = get_color("container_bg", mode)
         self.settings_section_apparence.border = create_border(1, border_color)
 
+        self.settings_label_detection.color = subtle
+        self.settings_label_sensibilite.color = get_color("text", mode)
+        self.settings_label_seuil_valeur.color = subtle
+        self.seuil_slider.active_color = get_color("accent", mode)
+        self.seuil_slider.inactive_color = border_color
+        self.settings_section_detection.bgcolor = get_color("container_bg", mode)
+        self.settings_section_detection.border = create_border(1, border_color)
+
         # mise a jour du theme des graphiques et des cartes qui les entourent
         if hasattr(self, 'fig1'):
             for card in [self.card1, self.card2, self.card3]:
@@ -604,6 +658,9 @@ class App:
                 self._afficher_flux()
                 # instanciation du backend
                 self.backend_instance = BlinkCounter()
+                
+                self.backend_instance.seuil_clignements = self.seuil_clignements
+                
                 # thread en arriere-plan pour ne pas bloquer l'interface
                 self.backend_thread = threading.Thread(target=self.backend_instance.process_video, daemon=True)
                 self.backend_thread.start()
