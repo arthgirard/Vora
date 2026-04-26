@@ -264,62 +264,88 @@ class App:
         self.page.add(self.layout)
 
     def _build_analyse(self, mode):
-        # creation des figures matplotlib avec un ratio adapte au layout grid
-        self.fig1, self.ax1 = plt.subplots(figsize=(4, 3))
-        self.fig2, self.ax2 = plt.subplots(figsize=(4, 3))
-        self.fig3, self.ax3 = plt.subplots(figsize=(8, 3))
+        # ax1 et ax3 = histogrammes (haut), ax2 = nuage de points (bas, large)
+        self.fig1, self.ax1 = plt.subplots(figsize=(8, 5), dpi=100)
+        self.fig2, self.ax2 = plt.subplots(figsize=(16, 5), dpi=100)
+        self.fig3, self.ax3 = plt.subplots(figsize=(8, 5), dpi=100)
 
         self._style_plots(mode)
 
-        # Creation des images Flet avec des Data URI pre-generees pour eviter toute erreur ou image cassee
+        # images pre-generees pour eviter les erreurs au premier affichage
         self.chart1 = ft.Image(src=self._get_chart_base64(self.fig1), expand=True, fit=ft.BoxFit.CONTAIN)
         self.chart2 = ft.Image(src=self._get_chart_base64(self.fig2), expand=True, fit=ft.BoxFit.CONTAIN)
         self.chart3 = ft.Image(src=self._get_chart_base64(self.fig3), expand=True, fit=ft.BoxFit.CONTAIN)
 
-        # disposition en grille: moitie haute = chart1 et chart2, moitie basse = chart3
-        row_top = ft.Row([
-            ft.Container(content=self.chart1, expand=True, alignment=ft.Alignment(0, 0)),
-            ft.Container(content=self.chart2, expand=True, alignment=ft.Alignment(0, 0))
-        ], expand=True)
+        border_color = get_color("border_color", mode)
+        bg = get_color("container_bg", mode)
 
-        row_bottom = ft.Row([
-            ft.Container(content=self.chart3, expand=True, alignment=ft.Alignment(0, 0))
-        ], expand=True)
+        # cartes qui encadrent chaque graphique, cohérentes avec le reste de l'interface
+        def make_card(chart):
+            return ft.Container(
+                content=chart,
+                expand=True,
+                bgcolor=bg,
+                border=create_border(1, border_color),
+                border_radius=10,
+                padding=8,
+                alignment=ft.Alignment(0, 0),
+            )
+
+        self.card1 = make_card(self.chart1)
+        self.card2 = make_card(self.chart2)
+        self.card3 = make_card(self.chart3)
+
+        # haut: deux histogrammes cote a cote — bas: nuage de points pleine largeur
+        row_top = ft.Row([self.card1, self.card3], expand=True, spacing=10)
+        row_bottom = ft.Row([self.card2], expand=True)
 
         return ft.Column([row_top, row_bottom], expand=True, spacing=10)
 
     def _style_plots(self, mode):
-        # reaffectation des labels a chaque mise a jour car clear() les supprime
-        self.ax1.set_title("Fréquence des clignements")
-        self.ax1.set_xlabel("Minute")
-        self.ax1.set_ylabel("Clignements")
-
-        self.ax2.set_title("Fiabilité de la détection")
-        self.ax2.set_xlabel("Minute")
-        self.ax2.set_ylabel("Fiabilité")
-        self.ax2.set_ylim(-0.1, 1.1)
-
-        self.ax3.set_title("Indicateur de fatigue")
-        self.ax3.set_xlabel("Minute")
-        self.ax3.set_ylabel("Fatigue")
-        self.ax3.set_ylim(-0.1, 1.1)
-
-        # application des couleurs du theme aux graphiques
+        # couleurs issues du theme actif
         text_color = get_color("text", mode)
-        bg_color = get_color("container_bg", mode)
-        
-        for ax in [self.ax1, self.ax2, self.ax3]:
-            ax.tick_params(colors=text_color)
-            ax.xaxis.label.set_color(text_color)
-            ax.yaxis.label.set_color(text_color)
-            ax.title.set_color(text_color)
-            for spine in ax.spines.values():
-                spine.set_color(text_color)
-            ax.set_facecolor(bg_color)
-            
+        subtle_color = get_color("text_subtle", mode)
+        border_color = get_color("border_color", mode)
+        bg = get_color("container_bg", mode)
+        is_dark = (mode == ft.ThemeMode.DARK)
+
+        # grilles et labels d'axes : noir en mode clair, blanc en mode sombre
+        axis_color = "#FFFFFF" if is_dark else "#000000"
+        grid_color = "#3D3D3D" if is_dark else "#E6E6E6"
+
+        # ax1 et ax3 = histogrammes, ax2 = nuage de points (bas, large)
+        configs = [
+            (self.ax1, "Fréquence des clignements", "Clignements / minute", "Fréquence"),
+            (self.ax2, "Fiabilité de la détection", "Minute",               "Fiabilité"),
+            (self.ax3, "Alertes de fatigue",         "Niveau de fatigue",   "Fréquence"),
+        ]
+
+        # les figures font ~2.35x la taille affichee — toutes les tailles sont scalees en consequence
+        for ax, titre, xlabel, ylabel in configs:
+            ax.set_title(titre, fontsize=22, fontweight='semibold', color=text_color, pad=28)
+            ax.set_xlabel(xlabel, fontsize=22, color=axis_color, labelpad=18)
+            ax.set_ylabel(ylabel, fontsize=22, color=axis_color, labelpad=18)
+
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color(border_color)
+            ax.spines['left'].set_linewidth(2.0)
+            ax.spines['bottom'].set_color(border_color)
+            ax.spines['bottom'].set_linewidth(2.0)
+
+            ax.tick_params(colors=axis_color, labelsize=19, length=8, width=2.0)
+            ax.set_facecolor(bg)
+
+            ax.grid(True, color=grid_color, linewidth=1.8, alpha=1.0)
+            ax.set_axisbelow(True)
+
+        # axe X de la fiabilite commence a 1 (les minutes ne peuvent pas descendre en dessous)
+        self.ax2.set_ylim(-0.1, 1.1)
+        self.ax2.set_xlim(left=1)
+
         for fig in [self.fig1, self.fig2, self.fig3]:
-            fig.patch.set_facecolor(bg_color)
-            fig.tight_layout()
+            fig.patch.set_facecolor(bg)
+            fig.tight_layout(pad=2.5)
 
     def _get_chart_base64(self, fig):
         # sauvegarde propre d'une figure au format data uri
@@ -379,11 +405,21 @@ class App:
 
             # securite: on s'assure que les colonnes existent avant de les dessiner
             if len(df.columns) > 1:
-                self.ax1.plot(x, df.iloc[:, 1], color=accent_color, marker='o')
+                data1 = df.iloc[:, 1].dropna()
+                bins1 = max(1, min(20, len(data1)))
+                self.ax1.hist(data1, bins=bins1, color=accent_color, edgecolor='none', alpha=1.0, rwidth=0.75, zorder=3)
             if len(df.columns) > 2:
-                self.ax2.plot(x, df.iloc[:, 2], color='green', drawstyle='steps-mid', marker='o')
+                green = "#2ECC71"
+                self.ax2.plot(x, df.iloc[:, 2], color=green, linewidth=4.5, zorder=3)
+                self.ax2.scatter(x, df.iloc[:, 2], color=green, s=180, zorder=4, edgecolors='none')
+                self.ax2.fill_between(x, df.iloc[:, 2], alpha=0.10, color=green, zorder=2)
+                if len(x) > 0:
+                    self.ax2.set_xlim(left=min(float(x.min()), 1))
             if len(df.columns) > 3:
-                self.ax3.plot(x, df.iloc[:, 3], color='red', drawstyle='steps-mid', marker='o')
+                red = "#E74C3C"
+                data3 = df.iloc[:, 3].dropna()
+                bins3 = max(1, min(20, len(data3)))
+                self.ax3.hist(data3, bins=bins3, color=red, edgecolor='none', alpha=1.0, rwidth=0.75, zorder=3)
 
             self._style_plots(self.page.theme_mode)
             self._refresh_chart_images()
@@ -544,8 +580,11 @@ class App:
         self.settings_section_apparence.bgcolor = get_color("container_bg", mode)
         self.settings_section_apparence.border = create_border(1, border_color)
 
-        # mise a jour du theme des graphiques
+        # mise a jour du theme des graphiques et des cartes qui les entourent
         if hasattr(self, 'fig1'):
+            for card in [self.card1, self.card2, self.card3]:
+                card.bgcolor = get_color("container_bg", mode)
+                card.border = create_border(1, border_color)
             self._style_plots(mode)
             self._refresh_chart_images()
 
