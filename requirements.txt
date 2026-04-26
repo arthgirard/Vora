@@ -3,3 +3,5 @@ opencv-python
 mediapipe
 flet
 notify-py
+sqlite3
+uuid

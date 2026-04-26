@@ -12,6 +12,13 @@ import platform
 # imports custom
 from tracker import eye_tracker, landmark_extract
 from ergo_timer import ErgoTimer
+from database_manager import Manager
+
+import threading
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
 
 class BlinkCounter:
     def __init__(self, video_path, model_path='face_landmarker.task'):
@@ -22,9 +29,13 @@ class BlinkCounter:
         self.latest_frame = None
 
         # Init avec tracker.py
+        # Init avec tracker.py 
         self.tracker = eye_tracker(model_path)
         self.extractor = landmark_extract()
-        self.ergo_timer = ErgoTimer()
+        self.blink_database = Manager()
+        self.seuil_fatigue=10
+        self.ergo_timer = ErgoTimer(db_manager=self.blink_database,seuil=self.seuil_fatigue)
+
 
         # Logique de détection, version améliorée avec double moyennes mobiles
         self.ear_history = []
@@ -43,17 +54,20 @@ class BlinkCounter:
         self.current_blink_max = 0.0
         self.min_blink_frames = 3
         self.max_blink_frames = 15 # pour faire la distinction entre un clignement spontané et un regard dans une autre direction
+       
+        
         
         self.blink_counter = 0
-        self.nb_blink_total_minute = [0, 0]
-        self.nb_blink_minute = []   #historique de la frequence chaque minute
-        self.freq_stamp = 0
+        self.nb_blink_total_minute = 0
+        self.freq_stamp = 0 
 
         self.frame_counter = 0
         
         # Ajout d'une variable de contrôle pour que le thread s'arrête proprement avec Flet
         self.running = True
         
+        #pour la donner aberrante:
+
     def eye_aspect_ratio(self, eye_points):
         # Distances
         p = []
@@ -101,20 +115,22 @@ class BlinkCounter:
 
     def get_freq_data(self, start):
         elapse = time.monotonic() - start
-        # print(elapse)
+        current_minute = int(elapse // 60)
 
-        if int(elapse) == 60 and self.freq_stamp!=1:
-            self.nb_blink_total_minute.append(self.blink_counter)
-            self.nb_blink_minute.append(self.blink_counter)
-            self.freq_stamp = 1
-            # print(self.nb_blink_minute[-1])# pour le debugging
+        if current_minute > self.freq_stamp:
+            self.nb_blink_minute = self.blink_counter - self.nb_blink_total_minute
 
-        elif int(elapse)%60 == 0 and (int(elapse)/60 != self.freq_stamp):
-            self.nb_blink_total_minute.append(self.blink_counter) 
-            self.nb_blink_minute.append(self.nb_blink_total_minute[-1]-self.nb_blink_total_minute[-2]) 
-            self.freq_stamp = int(elapse)/60
-            # print(self.nb_blink_minute[-1])# pour le debugging
-
+            is_reliable = 1
+            if self.ergo_timer.absence_start is not None:
+                is_reliable = 0
+            
+        
+            is_low = 1 if self.nb_blink_minute < self.seuil_fatigue else 0
+            # On logue avec le marquer
+            self.blink_database.minute_log(current_minute, self.nb_blink_minute, is_reliable, is_low)
+        
+            self.nb_blink_total_minute = self.blink_counter
+            self.freq_stamp = current_minute
 
     def process_video(self):
         systeme = platform.system()
@@ -136,11 +152,16 @@ class BlinkCounter:
 
         self.w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
         self.h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+        window_name = "Vora Blink Counter"
+        cv.namedWindow(window_name, cv.WINDOW_NORMAL)
+        cv.resizeWindow(window_name, 960, 540)
         
         t0 = time.monotonic()
         last_timestamp = -1
         start_timer_freq = time.monotonic()
 
+        face_detected=False
         # Ajout de la condition 'self.running' pour lier l'exécution à l'état du frontend
         while cap.isOpened() and self.running:
 
@@ -165,12 +186,11 @@ class BlinkCounter:
             
             # Récolte des données dans tracker.py
             latest = self.tracker.store.latest
-            face_detected = False
-
+            current_face_detected = False
             if latest:
                 result, _ = latest
                 if result.face_landmarks:
-                    face_detected = True
+                    current_face_detected = True
                     landmarks = result.face_landmarks[0]
                     
                     # Extraction des données
@@ -218,7 +238,10 @@ class BlinkCounter:
             with self._frame_lock:
                 self.latest_frame = b64
 
-            self.ergo_timer.update(face_detected)
+            self.face_is_currently_detected = current_face_detected
+            self.ergo_timer.update(current_face_detected)
+
+            face_detected = current_face_detected
 
         cap.release()
         

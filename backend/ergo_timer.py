@@ -6,8 +6,9 @@ audio_path = os.path.join("..", "assets", "notif.wav")
 icon_path = os.path.join("..", "assets", "icon.png")
 
 class ErgoTimer:
-    def __init__(self):
+    def __init__(self, db_manager=None, seuil=10):
         # Système de notifications
+        self.db_manager = db_manager
         self.notifier = Notify()
         self.notifier.title = "Il est temps de prendre une pause."
         self.notifier.message = "Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
@@ -24,6 +25,8 @@ class ErgoTimer:
         
         self.needs_break = False
         self.notification_sent = False
+        
+        self.LOW_BLINK_THRESHOLD = seuil # seuil : en bas de 10=yeux fatigués 
 
     def update(self, face_detected: bool):
         current_time = time.monotonic()
@@ -35,6 +38,15 @@ class ErgoTimer:
             
         delta = current_time - self.last_update
         self.last_update = current_time
+
+        if self.db_manager:
+            last_count = self.db_manager.get_last_reliable_blink_count()
+            if last_count is not None and last_count < self.LOW_BLINK_THRESHOLD:
+                self.needs_break = True
+                if not self.notification_sent:
+                    self.notifier.message = f"Fréquence basse ({last_count} clign/min). Vos yeux sont fatigués."
+                    self.notifier.send()
+                    self.notification_sent = True
 
         if face_detected:
             # L'utilisateur regarde l'écran
