@@ -28,7 +28,6 @@ class BlinkCounter:
         self._frame_lock = _threading.Lock()
         self.latest_frame = None
 
-        # Init avec tracker.py
         # Init avec tracker.py 
         self.tracker = eye_tracker(model_path)
         self.extractor = landmark_extract()
@@ -153,15 +152,10 @@ class BlinkCounter:
         self.w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))
         self.h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 
-        window_name = "Vora Blink Counter"
-        cv.namedWindow(window_name, cv.WINDOW_NORMAL)
-        cv.resizeWindow(window_name, 960, 540)
-        
         t0 = time.monotonic()
         last_timestamp = -1
         start_timer_freq = time.monotonic()
 
-        face_detected=False
         # Ajout de la condition 'self.running' pour lier l'exécution à l'état du frontend
         while cap.isOpened() and self.running:
 
@@ -186,11 +180,11 @@ class BlinkCounter:
             
             # Récolte des données dans tracker.py
             latest = self.tracker.store.latest
-            current_face_detected = False
+            face_detected = False
             if latest:
                 result, _ = latest
                 if result.face_landmarks:
-                    current_face_detected = True
+                    face_detected = True
                     landmarks = result.face_landmarks[0]
                     
                     # Extraction des données
@@ -238,10 +232,7 @@ class BlinkCounter:
             with self._frame_lock:
                 self.latest_frame = b64
 
-            self.face_is_currently_detected = current_face_detected
-            self.ergo_timer.update(current_face_detected)
-
-            face_detected = current_face_detected
+            self.ergo_timer.update(face_detected)
 
         cap.release()
         
