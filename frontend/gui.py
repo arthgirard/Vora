@@ -661,7 +661,6 @@ class App:
         else:
             if BlinkCounter is not None:
                 self.run_btn.content.value = "■ Arrêter"
-                self.run_btn.style.color = ft.Colors.RED_400
                 self._afficher_flux()
                 # instanciation du backend
                 self.backend_instance = BlinkCounter()
