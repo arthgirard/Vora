@@ -195,16 +195,6 @@ class BlinkCounter:
                         earm = slow_sma - fast_sma
 
                         self.update_count(earm)
-                        
-                        color = (0, 0, 255) if self.is_blinking else (0, 255, 0)
-                        cv.putText(frame, f"Clignements : {self.blink_counter}", (30, 50), 
-                                   cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                        cv.putText(frame, f"Seuil Fermeture: {self.earm_threshold_close:.3f}", (30, 90), 
-                                   cv.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                    else:
-                        # Remplissage initial de l'historique
-                        cv.putText(frame, "Initialisation de la camera...", (30, 50), 
-                                   cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
                     # Dessin des points
                     for pt in r_data + l_data:

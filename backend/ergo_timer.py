@@ -2,8 +2,10 @@ import time
 import os
 from notifypy import Notify
 
-audio_path = os.path.join("..", "assets", "notif.wav")
-icon_path = os.path.join("..", "assets", "icon.png")
+# Utilisation de chemins absolus basés sur __file__ pour une fiabilité totale
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+audio_path = os.path.join(base_dir, "assets", "notif.wav")
+icon_path = os.path.join(base_dir, "assets", "icon.png")
 
 class ErgoTimer:
     def __init__(self, db_manager=None, seuil=10):
@@ -11,7 +13,7 @@ class ErgoTimer:
         self.db_manager = db_manager
         self.notifier = Notify()
         self.notifier.title = "Il est temps de prendre une pause."
-        self.notifier.message = "Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
+        self.notifier.message = "Règle 20-20-20 : Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
         self.notifier.audio = audio_path
         self.notifier.icon = icon_path
         
@@ -56,13 +58,15 @@ class ErgoTimer:
         current_minute = int((current_time - self.session_start) // 60)
 
         if self.db_manager and current_minute > 0 and current_minute > self.last_checked_minute:
-            self.last_checked_minute = current_minute
-            last_count = self.db_manager.get_last_reliable_blink_count()
-            
-            if last_count is not None and last_count < self.LOW_BLINK_THRESHOLD:
-                self.notifier.title = "Fatigue visuelle"
-                self.notifier.message = f"Fréquence basse ({last_count} clign/min). Vos yeux sont fatigués."
-                self.notifier.send()
+            # Délai de grâce d'une seconde pour éviter la 'race condition' avec l'écriture de la base
+            if (current_time - self.session_start) % 60 > 1.0:
+                self.last_checked_minute = current_minute
+                last_count = self.db_manager.get_last_reliable_blink_count()
+                
+                if last_count is not None and last_count < self.LOW_BLINK_THRESHOLD:
+                    self.notifier.title = "Fatigue visuelle"
+                    self.notifier.message = f"Fréquence basse ({last_count} clign/min). Vos yeux sont fatigués."
+                    self.notifier.send()
 
         if face_detected:
             # L'utilisateur regarde l'écran
@@ -74,7 +78,7 @@ class ErgoTimer:
                 self.needs_break = True
                 if not self.notification_sent:
                     self.notifier.title = "Il est temps de prendre une pause."
-                    self.notifier.message = "Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
+                    self.notifier.message = "Règle 20-20-20 : Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
                     self.notifier.send()
                     self.notification_sent = True
         else:

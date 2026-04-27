@@ -104,7 +104,7 @@ class App:
         self.page = page
         self.page.title = "Vora"
         self.page.window.width = 960
-        self.page.window.height = 540
+        self.page.window.height = 515  # Réduit de 540 à 515 pour épouser parfaitement le ratio vidéo
         self.page.padding = 15
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.bgcolor = get_color("app_bg", self.page.theme_mode)
@@ -202,14 +202,70 @@ class App:
             expand=True,
         )
 
-        # flux vidéo - caché par défaut, gapless_playback évite le flash entre les frames
+        # image de base du flux vidéo — gapless_playback évite le flash entre les frames
         self.video_feed = ft.Image(
-            src="logo_black.png",
-            visible=False,
-            border_radius=8,
+            src="logo_black.png", # Argument src requis par Flet
             fit=ft.BoxFit.CONTAIN,
             gapless_playback=True,
             expand=True,
+        )
+
+        # pastille de statut positionnée en haut à gauche dans le Stack
+        self.status_dot = ft.Container(width=8, height=8, border_radius=4, bgcolor="#2ECC71")
+        self.status_label = ft.Text(
+            "Détection active", size=12, color="#FFFFFF", weight=ft.FontWeight.W_500
+        )
+        self.video_status_badge = ft.Container(
+            content=ft.Row([self.status_dot, self.status_label], spacing=6, tight=True),
+            padding=ft.padding.symmetric(horizontal=12, vertical=7),
+            bgcolor="#99000000",
+            border_radius=20,
+            top=12,
+            left=12,
+        )
+
+        # textes de la barre de stats en bas
+        self.overlay_count = ft.Text("0", size=20, color="#FFFFFF", weight=ft.FontWeight.BOLD)
+        self.overlay_freq = ft.Text("", size=12, color="#AAAAAA")
+
+        # barre de stats semi-transparente ancrée en bas, pleine largeur
+        self.video_stats_bar = ft.Container(
+            content=ft.Row(
+                [
+                    ft.Row(
+                        [
+                            ft.Icon(ft.Icons.REMOVE_RED_EYE_OUTLINED, color="#FFFFFF", size=16),
+                            ft.Container(width=8),
+                            self.overlay_count,
+                            ft.Container(width=6),
+                            ft.Text("clignements", size=11, color="#AAAAAA"),
+                        ],
+                        spacing=0,
+                        tight=True,
+                    ),
+                    self.overlay_freq,
+                ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            ),
+            padding=ft.padding.symmetric(horizontal=16, vertical=12),
+            bgcolor="#CC000000",
+            bottom=0,
+            left=0,
+            right=0,
+        )
+
+        # wrapper : image + overlays empilés, fond sombre pour un letterboxing cohérent
+        self.video_wrapper = ft.Container(
+            content=ft.Stack([
+                self.video_feed,
+                self.video_status_badge,
+                self.video_stats_bar,
+            ]),
+            expand=True,
+            visible=False,
+            border_radius=8,
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            bgcolor="#0D0D0D",
         )
 
         # page d'analyse, avec un container pour permettre l'expansion du layout grid interne
@@ -236,12 +292,7 @@ class App:
                         expand=True,
                         alignment=ft.Alignment(0, 0),
                     ),
-                    ft.Container(
-                        content=self.video_feed,
-                        expand=True,
-                        border_radius=8,
-                        clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    ),
+                    self.video_wrapper,
                     ft.Container(
                         content=self.analyse_content,
                         expand=True,
@@ -517,7 +568,6 @@ class App:
             self.backend_instance.seuil_clignements = self.seuil_clignements
 
     async def _boucle_affichage(self, instance_cible):
-        # La boucle vérifie désormais SON instance, et s'arrêtera proprement
         while instance_cible and getattr(instance_cible, 'running', False):
             if not self.affichage_pause:
                 with instance_cible._frame_lock:
@@ -525,6 +575,21 @@ class App:
                 if frame:
                     self.video_feed.src = f"data:image/jpeg;base64,{frame}"
                     self.video_feed.update()
+
+                # pastille : orange pendant l'initialisation, vert ensuite
+                en_init = len(instance_cible.ear_history) < instance_cible.slow_history_length
+                self.status_dot.bgcolor = "#F39C12" if en_init else "#2ECC71"
+                self.status_label.value = "Initialisation..." if en_init else "Détection active"
+                self.status_dot.update()
+                self.status_label.update()
+
+                # barre de stats : compteur total + fréquence de la dernière minute
+                self.overlay_count.value = str(instance_cible.blink_counter)
+                self.overlay_count.update()
+                freq = getattr(instance_cible, 'nb_blink_minute', None)
+                self.overlay_freq.value = f"{freq} /min" if freq is not None else ""
+                self.overlay_freq.update()
+
             await asyncio.sleep(0.05)
 
     def _afficher_flux(self):
@@ -532,20 +597,20 @@ class App:
         self.settings_content.visible = False
         self.analyse_content.visible = False
         self.placeholder.visible = False
-        self.video_feed.visible = True
+        self.video_wrapper.visible = True
         self.main_content.update()
 
     def _afficher_placeholder(self):
         # bascule de l'affichage vers le placeholder
         self.settings_content.visible = False
         self.analyse_content.visible = False
-        self.video_feed.visible = False
+        self.video_wrapper.visible = False
         self.placeholder.visible = True
         self.main_content.update()
 
     def _afficher_parametres(self):
         # bascule de l'affichage vers la page de paramètres
-        self.video_feed.visible = False
+        self.video_wrapper.visible = False
         self.analyse_content.visible = False
         self.placeholder.visible = False
         self.settings_content.visible = True
@@ -553,7 +618,7 @@ class App:
 
     def _afficher_analyse(self):
         # bascule de l'affichage vers la page d'analyse
-        self.video_feed.visible = False
+        self.video_wrapper.visible = False
         self.placeholder.visible = False
         self.settings_content.visible = False
         self.analyse_content.visible = True
