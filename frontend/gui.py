@@ -184,7 +184,7 @@ class App:
         # placeholder affiché quand la caméra est éteinte
         self.placeholder_icon = ft.Text("◉", size=36, color=get_color("text_subtle", mode))
         self.placeholder_titre = ft.Text(
-            "Vora n'est pas en cours",
+            "Vora n'est pas en cours d'exécution",
             size=15,
             weight=ft.FontWeight.W_600,
             color=get_color("text_subtle", mode)
