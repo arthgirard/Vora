@@ -5,7 +5,7 @@ from notifypy import Notify
 # Utilisation de chemins absolus basés sur __file__ pour une fiabilité totale
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 audio_path = os.path.join(base_dir, "assets", "notif.wav")
-icon_path = os.path.join(base_dir, "assets", "icon.png")
+icon_path = os.path.join(base_dir, "assets", "favicon.png")
 
 class ErgoTimer:
     def __init__(self, db_manager=None, seuil=10):
