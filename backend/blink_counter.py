@@ -13,11 +13,6 @@ from tracker import eye_tracker, landmark_extract
 from ergo_timer import ErgoTimer
 from database_manager import Manager
 
-import threading
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-
 
 class BlinkCounter:
     def __init__(self, model_path='face_landmarker.task'):
@@ -52,8 +47,6 @@ class BlinkCounter:
         self.blink_counter = 0
         self.nb_blink_total_minute = 0
         self.freq_stamp = 0 
-
-        self.frame_counter = 0
         
         # Ajout d'une variable de contrôle pour que le thread s'arrête proprement avec Flet
         self.running = True

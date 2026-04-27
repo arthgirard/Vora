@@ -4,7 +4,6 @@ import threading
 import asyncio
 import sys
 import os
-import time
 import sqlite3
 import pandas as pd
 import matplotlib

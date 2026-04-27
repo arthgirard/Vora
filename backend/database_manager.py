@@ -1,5 +1,4 @@
 import sqlite3
-import uuid
 from datetime import datetime
 
 
@@ -25,15 +24,6 @@ class Manager:
         count = self.cursor.fetchone()[0]
         return count + 1
 
-    def get_latest_session_id(self):
-        """Récupère l'ID de la dernière session enregistrée dans la DB."""
-        query = "SELECT session_id FROM blink_logs ORDER BY timestamp DESC LIMIT 1"
-        self.cursor.execute(query)
-        result = self.cursor.fetchone()
-        if result:
-            return result[0]
-        return self.current_session_id # Fallback si la DB est vide
-        
     def create_table(self):
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS blink_logs(
@@ -69,30 +59,3 @@ class Manager:
         self.cursor.execute(query)
         result = self.cursor.fetchone()
         return result[0] if result else None
-
-    def get_histogram_query(self, scope="alltime"):
-        condition = "is_reliable = 1"
-        if scope == "today":
-            condition += " AND date(timestamp) = date('now')"    
-        return f"SELECT blink_count FROM blink_logs WHERE {condition}"
-
-    def get_low_freq_weekly_query(self, jours):
-        return f"""
-            SELECT date(timestamp) as x_plot, 
-                   SUM(low_freq) as y_plot 
-            FROM blink_logs 
-            WHERE timestamp >= date('now', '-{jours} day')
-                AND is_reliable = 1
-            GROUP BY date(timestamp)
-            ORDER BY date(timestamp) ASC
-        """
-   
-    def get_scatter_session_query(self):
-        return """
-            SELECT minute_mark as x_plot, 
-                   blink_count as y_plot 
-            FROM blink_logs 
-            WHERE session_id = (SELECT session_id FROM blink_logs ORDER BY timestamp DESC LIMIT 1)
-                AND is_reliable = 1
-            ORDER BY minute_mark ASC
-        """
