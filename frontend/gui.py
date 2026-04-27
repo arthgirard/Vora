@@ -217,7 +217,7 @@ class App:
         )
         self.video_status_badge = ft.Container(
             content=ft.Row([self.status_dot, self.status_label], spacing=6, tight=True),
-            padding=ft.padding.symmetric(horizontal=12, vertical=7),
+            padding=ft.Padding.symmetric(horizontal=12, vertical=7),
             bgcolor="#99000000",
             border_radius=20,
             top=12,
@@ -247,7 +247,7 @@ class App:
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            padding=ft.padding.symmetric(horizontal=16, vertical=12),
+            padding=ft.Padding.symmetric(horizontal=16, vertical=12),
             bgcolor="#CC000000",
             bottom=0,
             left=0,
@@ -320,10 +320,10 @@ class App:
         self.page.add(self.layout)
 
     def _build_analyse(self, mode):
-        # ax1 et ax3 = histogrammes (haut), ax2 = nuage de points (bas, large)
-        self.fig1, self.ax1 = plt.subplots(figsize=(8, 5), dpi=100)
-        self.fig2, self.ax2 = plt.subplots(figsize=(16, 5), dpi=100)
-        self.fig3, self.ax3 = plt.subplots(figsize=(8, 5), dpi=100)
+        # Utilisation d'un DPI de 120 pour une meilleure netteté sur les écrans modernes
+        self.fig1, self.ax1 = plt.subplots(figsize=(6, 4), dpi=120)
+        self.fig2, self.ax2 = plt.subplots(figsize=(12, 4), dpi=120)
+        self.fig3, self.ax3 = plt.subplots(figsize=(6, 4), dpi=120)
 
         self._style_plots(mode)
 
@@ -358,53 +358,37 @@ class App:
         return ft.Column([row_top, row_bottom], expand=True, spacing=10)
 
     def _style_plots(self, mode):
-        # couleurs issues du theme actif
         text_color = get_color("text", mode)
-        subtle_color = get_color("text_subtle", mode)
         border_color = get_color("border_color", mode)
         bg = get_color("container_bg", mode)
         is_dark = (mode == ft.ThemeMode.DARK)
-
-        # grilles et labels d'axes : noir en mode clair, blanc en mode sombre
         axis_color = "#FFFFFF" if is_dark else "#000000"
         grid_color = "#3D3D3D" if is_dark else "#E6E6E6"
 
-        # ax1 et ax3 = histogrammes, ax2 = nuage de points (bas, large)
         configs = [
-            (self.ax1, "Fréquence des clignements", "Clignements / minute", "Fréquence"),
-            (self.ax2, "Fiabilité de la détection", "Minute",               "Fiabilité"),
-            (self.ax3, "Alertes de fatigue",         "Niveau de fatigue",   "Fréquence"),
+            (self.ax1, "Distribution historique", "Clignements / min", "Nombre de minutes"),
+            (self.ax2, "Suivi de la session",      "Temps (min)",      "Fiabilité (0-1)"),
+            (self.ax3, "Alertes de fatigue",      "Intervalle (5 min)", "Nombre d'alertes"),
         ]
 
-        # les figures font ~2.35x la taille affichee — toutes les tailles sont scalees en consequence
         for ax, titre, xlabel, ylabel in configs:
-            ax.set_title(titre, fontsize=22, fontweight='semibold', color=text_color, pad=28)
-            ax.set_xlabel(xlabel, fontsize=20, color=axis_color, labelpad=18)
-            ax.set_ylabel(ylabel, fontsize=20, color=axis_color, labelpad=18)
-
+            ax.set_title(titre, fontsize=20, fontweight='bold', color=text_color, pad=20)
+            ax.set_xlabel(xlabel, fontsize=14, color=axis_color, labelpad=12)
+            ax.set_ylabel(ylabel, fontsize=14, color=axis_color, labelpad=12)
+            
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             ax.spines['left'].set_color(border_color)
-            ax.spines['left'].set_linewidth(2.0)
             ax.spines['bottom'].set_color(border_color)
-            ax.spines['bottom'].set_linewidth(2.0)
-
-            # rotation et alignement de l'axe x pour eviter le chevauchement
-            ax.tick_params(colors=axis_color, labelsize=15, length=8, width=2.0)
-            plt.setp(ax.get_xticklabels(), rotation=35, ha="right", rotation_mode="anchor")
             
+            ax.tick_params(colors=axis_color, labelsize=12)
             ax.set_facecolor(bg)
+            ax.grid(True, color=grid_color, linestyle='--', alpha=0.3, zorder=0)
 
-            ax.grid(True, color=grid_color, linewidth=1.8, alpha=1.0)
-            ax.set_axisbelow(True)
-
-        # axe X de la fiabilite commence a 1 (les minutes ne peuvent pas descendre en dessous)
         self.ax2.set_ylim(-0.1, 1.1)
-        self.ax2.set_xlim(left=1)
-
         for fig in [self.fig1, self.fig2, self.fig3]:
             fig.patch.set_facecolor(bg)
-            fig.tight_layout(pad=2.5)
+            fig.tight_layout(pad=3.5)
 
     def _get_chart_base64(self, fig):
         # sauvegarde propre d'une figure au format data uri
@@ -421,7 +405,6 @@ class App:
                 chart.update()
 
     def _update_graphs(self):
-        # recherche robuste pour trouver la base de donnees, peu importe d'ou le script est lance
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         db_paths = [
             os.path.join(base_dir, 'backend', 'data_blinks.db'),
@@ -429,56 +412,65 @@ class App:
             os.path.join(base_dir, 'data_blinks.db'),
             os.path.abspath('data_blinks.db')
         ]
-        
         db_path = next((p for p in db_paths if os.path.exists(p)), None)
-
-        if not db_path:
-            return
+        
+        if not db_path: return
 
         try:
-            # timeout pour eviter les erreurs si le backend ecrit en meme temps
             conn = sqlite3.connect(db_path, timeout=5)
-            cursor = conn.cursor()
             
-            # selection de la table la plus recente
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name DESC LIMIT 1;")
-            tables = cursor.fetchall()
+            # Distribution historique
+            df_all = pd.read_sql_query("SELECT blink_count FROM blink_logs", conn)
             
-            if not tables:
-                conn.close()
-                return
-            
-            table_name = tables[0][0]
-            df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
-            conn.close()
-
-            if df.empty:
-                return
-
-            x = df.iloc[:, 0]
-            accent_color = get_color("accent", self.page.theme_mode)
-
             self.ax1.clear()
-            self.ax2.clear()
-            self.ax3.clear()
+            if not df_all.empty:
+                all_data = df_all['blink_count'].dropna().tolist()
+                if all_data:
+                    accent_color = get_color("accent", self.page.theme_mode)
+                    n_bins = min(max(5, len(set(all_data))), 15)
+                    self.ax1.hist(all_data, bins=n_bins, color=accent_color, alpha=0.8, rwidth=0.8, zorder=3)
 
-            # securite: on s'assure que les colonnes existent avant de les dessiner
-            if len(df.columns) > 1:
-                data1 = df.iloc[:, 1].dropna()
-                bins1 = max(1, min(20, len(data1)))
-                self.ax1.hist(data1, bins=bins1, color=accent_color, edgecolor='none', alpha=1.0, rwidth=0.75, zorder=3)
-            if len(df.columns) > 2:
-                green = "#2ECC71"
-                self.ax2.plot(x, df.iloc[:, 2], color=green, linewidth=4.5, zorder=3)
-                self.ax2.scatter(x, df.iloc[:, 2], color=green, s=180, zorder=4, edgecolors='none')
-                self.ax2.fill_between(x, df.iloc[:, 2], alpha=0.10, color=green, zorder=2)
-                if len(x) > 0:
-                    self.ax2.set_xlim(left=min(float(x.min()), 1))
-            if len(df.columns) > 3:
-                red = "#E74C3C"
-                data3 = df.iloc[:, 3].dropna()
-                bins3 = max(1, min(20, len(data3)))
-                self.ax3.hist(data3, bins=bins3, color=red, edgecolor='none', alpha=1.0, rwidth=0.75, zorder=3)
+            # Trouver l'ID de la dernière session enregistrée
+            cursor = conn.cursor()
+            cursor.execute("SELECT session_id FROM blink_logs ORDER BY id DESC LIMIT 1")
+            latest_session_row = cursor.fetchone()
+            
+            if latest_session_row:
+                latest_session_id = latest_session_row[0]
+                
+                query = f"SELECT minute_mark, is_reliable, low_freq FROM blink_logs WHERE session_id = '{latest_session_id}'"
+                df_latest = pd.read_sql_query(query, conn)
+                
+                if not df_latest.empty:
+                    minutes = df_latest['minute_mark']
+                    fiabilite = df_latest['is_reliable']
+                    alertes = df_latest['low_freq']
+
+                    # Suivi de la session
+                    self.ax2.clear()
+                    green = "#2ECC71"
+                    
+                    self.ax2.plot(minutes, fiabilite, color=green, linewidth=3, zorder=3)
+                    self.ax2.scatter(minutes, fiabilite, color=green, s=120, zorder=4, edgecolors='none')
+                    self.ax2.fill_between(minutes, fiabilite, color=green, alpha=0.15, zorder=2)
+                    
+                    if len(minutes) > 0:
+                        self.ax2.set_xlim(left=max(1, int(minutes.min())))
+
+                    # Alertes de fatigue
+                    self.ax3.clear()
+                    red = "#E74C3C"
+                    
+                    # Regroupement par blocs de 5 minutes
+                    intervals = (minutes // 5) * 5
+                    df_grouped = pd.DataFrame({'interval': intervals, 'alertes': alertes})
+                    alerts_sum = df_grouped.groupby('interval')['alertes'].sum().reset_index()
+                    
+                    if not alerts_sum.empty:
+                        labels = [f"{int(i)}-{int(i+5)}" for i in alerts_sum['interval']]
+                        self.ax3.bar(labels, alerts_sum['alertes'], color=red, alpha=0.8, width=0.6, zorder=3)
+
+            conn.close()
 
             self._style_plots(self.page.theme_mode)
             self._refresh_chart_images()
