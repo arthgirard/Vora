@@ -15,6 +15,10 @@ import base64
 # utilisation du backend non-interactif pour flet
 matplotlib.use("agg")
 
+# configuration de la police par defaut pour matplotlib avec des fallbacks Linux/Mac
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Segoe UI Variable', 'Segoe UI', 'Arial', 'Helvetica', 'Liberation Sans', 'DejaVu Sans']
+
 # ajout du chemin du backend
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 try:
@@ -325,8 +329,8 @@ class App:
         # les figures font ~2.35x la taille affichee — toutes les tailles sont scalees en consequence
         for ax, titre, xlabel, ylabel in configs:
             ax.set_title(titre, fontsize=22, fontweight='semibold', color=text_color, pad=28)
-            ax.set_xlabel(xlabel, fontsize=22, color=axis_color, labelpad=18)
-            ax.set_ylabel(ylabel, fontsize=22, color=axis_color, labelpad=18)
+            ax.set_xlabel(xlabel, fontsize=20, color=axis_color, labelpad=18)
+            ax.set_ylabel(ylabel, fontsize=20, color=axis_color, labelpad=18)
 
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
@@ -335,7 +339,10 @@ class App:
             ax.spines['bottom'].set_color(border_color)
             ax.spines['bottom'].set_linewidth(2.0)
 
-            ax.tick_params(colors=axis_color, labelsize=19, length=8, width=2.0)
+            # rotation et alignement de l'axe x pour eviter le chevauchement
+            ax.tick_params(colors=axis_color, labelsize=15, length=8, width=2.0)
+            plt.setp(ax.get_xticklabels(), rotation=35, ha="right", rotation_mode="anchor")
+            
             ax.set_facecolor(bg)
 
             ax.grid(True, color=grid_color, linewidth=1.8, alpha=1.0)
@@ -659,6 +666,7 @@ class App:
                 # instanciation du backend
                 self.backend_instance = BlinkCounter()
                 
+                # Transfert immédiat du seuil sélectionné dans Flet
                 self.backend_instance.seuil_clignements = self.seuil_clignements
                 
                 # thread en arriere-plan pour ne pas bloquer l'interface

@@ -19,6 +19,10 @@ class ErgoTimer:
         self.absence_start = None
         self.last_update = None
         
+        # Variables de session
+        self.session_start = 0.0
+        self.last_checked_minute = 0
+        
         # Constantes pour la règle 20-20-20
         self.BREAK_REQUIRED_SECONDS = 20*60 # 20 minutes (1200 secondes)
         self.RESET_ABSENCE_SECONDS = 20.0 # 20 secondes d'absence pour valider la pause
@@ -42,19 +46,23 @@ class ErgoTimer:
         # Initialisation lors de la première image pour éviter un décalage de temps de chargement
         if self.last_update is None:
             self.last_update = current_time
+            self.session_start = current_time
             return
             
         delta = current_time - self.last_update
         self.last_update = current_time
 
-        if self.db_manager:
+        # Verification de la frequence de clignements de la derniere minute ecoulee
+        current_minute = int((current_time - self.session_start) // 60)
+
+        if self.db_manager and current_minute > 0 and current_minute > self.last_checked_minute:
+            self.last_checked_minute = current_minute
             last_count = self.db_manager.get_last_reliable_blink_count()
+            
             if last_count is not None and last_count < self.LOW_BLINK_THRESHOLD:
-                self.needs_break = True
-                if not self.notification_sent:
-                    self.notifier.message = f"Fréquence basse ({last_count} clign/min). Vos yeux sont fatigués."
-                    self.notifier.send()
-                    self.notification_sent = True
+                self.notifier.title = "Fatigue visuelle"
+                self.notifier.message = f"Fréquence basse ({last_count} clign/min). Vos yeux sont fatigués."
+                self.notifier.send()
 
         if face_detected:
             # L'utilisateur regarde l'écran
@@ -65,6 +73,8 @@ class ErgoTimer:
             if self.screen_time >= self.BREAK_REQUIRED_SECONDS:
                 self.needs_break = True
                 if not self.notification_sent:
+                    self.notifier.title = "Il est temps de prendre une pause."
+                    self.notifier.message = "Regardez à 20 pieds pendant au moins 20 secondes, vos yeux ont besoin de repos."
                     self.notifier.send()
                     self.notification_sent = True
         else:
