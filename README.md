@@ -29,7 +29,7 @@ Vora is an AI-powered ocular health assistant designed to monitor eye blink freq
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/arthgirard/vora.git](https://github.com/arthgirard/vora.git)
+   git clone https://github.com/arthgirard/vora.git
    cd vora
    ```
 
