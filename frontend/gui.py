@@ -446,7 +446,7 @@ class App:
                     clignements = df_latest['blink_count'] # Utilisation du compte de clignements
                     alertes = df_latest['low_freq']
 
-                    # Suivi de la session (Axe Y = Nombre de clignements)
+                    # Suivi de la session
                     self.ax2.clear()
                     green = "#2ECC71"
                     
@@ -454,9 +454,12 @@ class App:
                     self.ax2.scatter(minutes, clignements, color=green, s=120, zorder=4, edgecolors='none')
                     self.ax2.fill_between(minutes, clignements, color=green, alpha=0.15, zorder=2)
                     
+                    # Red horizontal line for sensitivity threshold
+                    self.ax2.axhline(y=self.seuil_clignements, color="#E74C3C", linestyle="--", zorder=1, alpha=0.8)
+                    
                     if len(minutes) > 0:
                         self.ax2.set_xlim(left=max(1, int(minutes.min())))
-
+                    
                     # Alertes de fatigue
                     self.ax3.clear()
                     red = "#E74C3C"
@@ -469,7 +472,14 @@ class App:
                     if not alerts_sum.empty:
                         labels = [f"{int(i)}-{int(i+5)}" for i in alerts_sum['interval']]
                         self.ax3.bar(labels, alerts_sum['alertes'], color=red, alpha=0.8, width=0.6, zorder=3)
-
+                        
+                        # Calculer un pas pour afficher au maximum ~5 étiquettes pour éviter le chevauchement
+                        n = len(labels)
+                        step = max(1, n // 5)
+                        
+                        # Appliquer explicitement les index et les étiquettes avec ce pas
+                        self.ax3.set_xticks(range(0, n, step))
+                        self.ax3.set_xticklabels([labels[i] for i in range(0, n, step)])
             conn.close()
 
             self._style_plots(self.page.theme_mode)
