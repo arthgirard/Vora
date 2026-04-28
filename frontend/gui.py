@@ -367,7 +367,7 @@ class App:
 
         configs = [
             (self.ax1, "Distribution historique", "Clignements / min", "Nombre de minutes"),
-            (self.ax2, "Suivi de la session",      "Temps (min)",      "Fiabilité (0-1)"),
+            (self.ax2, "Suivi de la session",      "Temps (min)",      "Nombre de clignements"),
             (self.ax3, "Alertes de fatigue",      "Intervalle (5 min)", "Nombre d'alertes"),
         ]
 
@@ -385,7 +385,6 @@ class App:
             ax.set_facecolor(bg)
             ax.grid(True, color=grid_color, linestyle='--', alpha=0.3, zorder=0)
 
-        self.ax2.set_ylim(-0.1, 1.1)
         for fig in [self.fig1, self.fig2, self.fig3]:
             fig.patch.set_facecolor(bg)
             fig.tight_layout(pad=3.5)
@@ -438,21 +437,22 @@ class App:
             if latest_session_row:
                 latest_session_id = latest_session_row[0]
                 
-                query = f"SELECT minute_mark, is_reliable, low_freq FROM blink_logs WHERE session_id = '{latest_session_id}'"
+                # Mise à jour de la requête pour inclure blink_count
+                query = f"SELECT minute_mark, blink_count, is_reliable, low_freq FROM blink_logs WHERE session_id = '{latest_session_id}'"
                 df_latest = pd.read_sql_query(query, conn)
                 
                 if not df_latest.empty:
                     minutes = df_latest['minute_mark']
-                    fiabilite = df_latest['is_reliable']
+                    clignements = df_latest['blink_count'] # Utilisation du compte de clignements
                     alertes = df_latest['low_freq']
 
-                    # Suivi de la session
+                    # Suivi de la session (Axe Y = Nombre de clignements)
                     self.ax2.clear()
                     green = "#2ECC71"
                     
-                    self.ax2.plot(minutes, fiabilite, color=green, linewidth=3, zorder=3)
-                    self.ax2.scatter(minutes, fiabilite, color=green, s=120, zorder=4, edgecolors='none')
-                    self.ax2.fill_between(minutes, fiabilite, color=green, alpha=0.15, zorder=2)
+                    self.ax2.plot(minutes, clignements, color=green, linewidth=3, zorder=3)
+                    self.ax2.scatter(minutes, clignements, color=green, s=120, zorder=4, edgecolors='none')
+                    self.ax2.fill_between(minutes, clignements, color=green, alpha=0.15, zorder=2)
                     
                     if len(minutes) > 0:
                         self.ax2.set_xlim(left=max(1, int(minutes.min())))
