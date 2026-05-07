@@ -28,6 +28,10 @@
 \RequirePackage{graphicx}
 \RequirePackage{float}
 
+% GRAPHIQUES
+\usepackage{tikz}
+\usetikzlibrary{positioning, fit, calc, shapes.geometric, arrows.meta, decorations.pathreplacing}
+
 % MATHS
 \RequirePackage{amsmath, amssymb}
 
@@ -67,11 +71,12 @@
 \RequirePackage{csquotes}
 \RequirePackage[
     backend=biber,
-    style=ieee, % Active le format IEEE
+    style=ieee, % Active le format IEEE, peut être changé au besoin
     urldate=iso, % Format de date ISO (AAAA-MM-DD)
     date=iso, % Format de date ISO
     seconds=true % Précision des dates si disponible
 ]{biblatex}
+\setlength{\bibitemsep}{0.7em}
 
 % VARIABLES DE LA PAGE TITRE
 % Chaque champ est défini vide par défaut

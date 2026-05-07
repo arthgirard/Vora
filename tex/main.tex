@@ -4,6 +4,8 @@
 
 \documentclass{rapportbrebeuf}
 \addbibresource{references.bib}
+\usepackage{epigraph}
+\setlength{\epigraphwidth}{0.6\textwidth}
 
 % CHAMPS DE LA PAGE TITRE
 \auteurs{Arthur \textsc{Girard}, François \textsc{Lamarre}, Maxime \textsc{Vanseveren}}
@@ -24,20 +26,29 @@
 \faireTDM
 \debutCorps
 
+% ÉPIGRAPHE
+\epigraph{\textit{« L'informatique ne concerne plus les ordinateurs. Elle concerne la vie. »}}{--- \textsc{Nicholas Negroponte}}
+\vspace{1em}
+
 % ABSTRACT
-\section{Abstract}
+\section{Résumé}
+
 
 \textit{Vora} est un assistant logiciel de santé visuelle utilisant la vision par ordinateur pour
 prévenir les troubles liés à une exposition prolongée aux écrans. En analysant en temps réel le
 ratio d'ouverture des yeux (\textit{EAR}), le programme monitore la fréquence de clignement et
 automatise la règle ergonomique du 20-20-20. Cette solution non-intrusive vise à réduire la
-fatigue oculaire, tout en promouvant de meilleures habitudes de travail dans l'ère du numérique.
+fatigue oculaire, tout en promouvant de meilleures habitudes de travail dans l'ère du numérique. Pour assurer une fiabilité constante, l'algorithme intègre un filtrage adaptatif capable de distinuger les clignements réels des variations lumineuses ou des mouvements de l'utilisateur. L'architecture privilégie un traitement avec une base de données locale, garantissant une confidentialité absolue et une consommation énergétique optimisée sur le processeur.
 
 % INTRODUCTION
 \newpage
 \section{Introduction}
 
-% [À compléter]
+L'omniprésence des outils numériques dans les environnements professionnels et académiques a transformé les habitudes de travail, mais a également engendré une hausse marquée des troubles oculaires regroupées sous le terme de syndrome de la vision artificielle ou fatigue oculaire numérique. Ce trouble se manifeste par une série de symptômes tels que la sécheresse oculaire, les maux de tête et la vision floue, affectant une proportion croissant d'utilisateurs réguliers d'écrans. La problématique centrale réside dans le fait que la concentration intense exigée par les tâches numériques inhibe le réflexe psychologique naturel du clignement, essentiel à la lubrification de la cornée et à la stabilité du film lacrymal. Cette réduction de l'activité palpébrale entraîne alors une évaporation précoce des larmes, transformant une activité quotidienne en un facteur de stress biologique significatif pour la surface oculaire.
+
+La recherche scientifique a largement documenté ce lien de causalité, notamment à travers les travaux de Mark Rosenfield de l'Université d'État de New York. Dans sa revue intitulée \textit{Computer vision syndrome: a review of ocular causes and potential treatments}, il démontre que l'utilisation d'écrans entraîne une réduction drastique de la fréquence de clignement (pouvant chuter de près des deux tiers par rapport à la normale), ainsi qu'une augmentation préoccupante du nombre de clignements incomplets. Ces travaux soulignent que la fatigue n'est pas uniquement liée à la distance par rapport à l'écran ou à la lumière émise par les dispositifs, mais principalement à la demande cognitive élevée qui modifie le comportement biologique de l'utilisateur en retardant le déclenchement du réflexe de protection de l'oeil \cite{rosenfield2011syndrome}.
+
+Face à ce constat, diverses stratégies préventives ont été explorées, allant de simples méthodes comme la règle du « 20-20-20 » à l'utilisation d'applications de rappel chronométrées. Cependant, la majorité des solutions existantes demeurent passives et rigides, car elle ne tiennent pas compte de la dynamique réelle du comportement visuel de l'utilisateur durant ses sessions. Le défi actuel consiste donc à concevoir des systèmes capables de monitorer intelligemment le comportement oculaire en temps réel tout en garantissant le respect de la vie privée et une intégration non-intrusive. C'est dans cette perspective d'une assistance proactive et automatisée, capable de combler l'écart entre la recommandation ergonomique et l'activité réelle, que s'inscrit le développement du projet \textit{Vora}.
 
 % DESCRIPTION DU PROJET
 \newpage
@@ -55,7 +66,7 @@ Contrairement à un simple minuteur, le décompte des vingt minutes d'activité 
 une présence humaine est détectée devant le poste de travail. Une fois le délai atteint, l'algorithme
 valide la pause seulement si l'utilisateur détourne effectivement le regard de l'écran pendant vingt
 secondes, assurant ainsi une efficacité réelle de la mesure préventive. Finalement, les données de
-chaque session sont condensées dans une base de données locale, permettant de quantifier les
+chaque session sont condensées sur un fichier SQLite, permettant de quantifier les
 bénéfices de \textit{Vora} à l'aide de graphiques mis à jour en temps réel.
 
 Éthiquement, le respect de la vie privée constitue l'enjeu majeur de ce projet. Pour y répondre,
@@ -76,9 +87,117 @@ transfert et à la conservation de données inutiles.
 \newpage
 \subsection{Logique du code}
 
+% Flowchart programmé avec Gemini à partir du code Mermaid original (dans le PowerPoint)
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{logique_du_code.png}
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[
+        % Définition des couleurs
+        define color/.code 2 args={\definecolor{#1}{HTML}{#2}},
+        define color={startfill}{E8F0FE},
+        define color={startstroke}{2B5C8F},
+        define color={uifill}{FFFFFF},
+        define color={uistroke}{2B5C8F},
+        define color={logicfill}{F8F9FA},
+        define color={logicstroke}{6C757D},
+        define color={timerfill}{FFF8E1},
+        define color={timerstroke}{BCAAA4},
+        define color={dbfill}{E8F5E9},
+        define color={dbstroke}{81C784},
+        define color={alertfill}{FFEBEE},
+        define color={alertstroke}{E57373},
+        %
+        % Styles de base (Serif pour matcher le document)
+        base/.style={align=center, font=\small, inner xsep=10pt, inner ysep=8pt, minimum width=3.4cm, minimum height=1.2cm},
+        start/.style={base, rectangle, rounded corners=3mm, draw=startstroke, fill=startfill, thick},
+        ui/.style={base, rectangle, draw=uistroke, fill=uifill, thick},
+        logic/.style={base, rectangle, draw=logicstroke, fill=logicfill, thick},
+        timer/.style={base, rectangle, draw=timerstroke, fill=timerfill, thick},
+        alert/.style={base, rectangle, draw=alertstroke, fill=alertfill, thick},
+        database/.style={base, cylinder, shape border rotate=90, aspect=0.25, draw=dbstroke, fill=dbfill, thick, minimum width=4.5cm, minimum height=2.2cm, inner ysep=16pt},
+        dbbox/.style={base, rectangle, draw=dbstroke, fill=dbfill, thick},
+        %
+        % Styles des lignes
+        line/.style={draw, -Latex, thick, color=black!80},
+        dashedline/.style={draw, -Latex, thick, dashed, color=black!60},
+        %
+        % Style pour les étiquettes de section (Noir et lisible)
+        section label/.style={font=\Large\bfseries\color{black}, align=left}
+    ]
+    %
+    % ================= NIVEAU 1 : NAVIGATION =================
+    \node[start] (A)  at (0, 0)      {Lancement de Vora};
+    \node[ui]    (B)  at (0, -2.2)   {Interface Flet};
+    \node[ui]    (C)  at (-3.5, -5.0) {Section\\Démarrage};
+    \node[ui]    (D)  at (3.5, -5.0)  {Section\\Analyse};
+    %
+    % ================= NIVEAU 2 : LOGIQUE DE VISION =================
+    \node[start] (E)  at (-3.5, -8.0) {Action : Lancer};
+    \node[logic] (F)  at (-3.5, -10.0) {Thread Backend\\(Asynchrone)};
+    \node[logic] (G)  at (-3.5, -12.0) {Capture Vidéo\\+ MediaPipe};
+    %
+    \node[logic] (H)  at (-8.0, -16.5) {Calcul EAR\\\& Clignements};
+    \node[alert] (M)  at (-3.5, -16.5) {Analyse fatigue :\\Avertissement sécheresse};
+    \node[timer] (L)  at (1.5, -16.5)  {ErgoTimer :\\Présence \& pauses};
+    %
+    % ================= NIVEAU 3 : SORTIE DE DONNÉES =================
+    \node[database] (I) at (-3.5, -21.5) {Base de données SQLite};
+    \node[logic]    (J) at (3.5, -21.5)  {Flux vidéo\\en temps réel};
+    \node[dbbox]    (K) at (0, -25.5)    {Graphiques de\\fréquences et sessions};
+    %
+    % ================= BRACKETS ET ÉTIQUETTES (NOIR) =================
+    % Position X de l'accolade, repoussée pour éviter tout overlap
+    \def\Xbrace{7.0} 
+    %
+    % NAVIGATION (sans 'mirror' pour pointer vers la droite)
+    \draw [decorate, decoration={brace, amplitude=12pt}, thick, color=black] 
+        (\Xbrace, 0.8) -- (\Xbrace, -6.0) 
+        node [midway, right=15pt, section label] {NAVIGATION};
+    %
+    % LOGIQUE DE VISION
+    \draw [decorate, decoration={brace, amplitude=12pt}, thick, color=black] 
+        (\Xbrace, -7.0) -- (\Xbrace, -18.0) 
+        node [midway, right=15pt, section label] {LOGIQUE DE\\VISION};
+    %
+    % SORTIE DE DONNÉES
+    \draw [decorate, decoration={brace, amplitude=12pt}, thick, color=black] 
+        (\Xbrace, -19.5) -- (\Xbrace, -27.0) 
+        node [midway, right=15pt, section label] {SORTIE DE\\DONNÉES};
+    %
+    % ================= CONNEXIONS SOLIDES =================
+    \draw[line] (A) -- (B);
+    \draw[line, rounded corners] (B.south) -- (0, -3.6) -| (C.north);
+    \draw[line, rounded corners] (B.south) -- (0, -3.6) -| (D.north);
+    %
+    \draw[line] (C) -- (E);
+    \draw[line] (E) -- (F);
+    \draw[line] (F) -- (G);
+    %
+    % Bus principal sortant de Capture Vidéo (Y = -14.2)
+    \draw[line, rounded corners] (G.south) -- (-3.5, -14.2) -| (H.north);
+    \draw[line, rounded corners] (G.south) -- (-3.5, -14.2) -| (L.north);
+    \draw[line, rounded corners] (G.south) -- (-3.5, -14.2) -| (J.north);
+    %
+    \draw[line] (H.east) -- (M.west);
+    %
+    \draw[line, rounded corners] (H.south) |- (I.west);
+    \draw[line]                  (M.south) -- (I.north);
+    \draw[line, rounded corners] (L.south) |- (I.east);
+    %
+    \draw[line, rounded corners] (I.south) |- (K.west);
+    %
+    % ================= CONNEXIONS POINTILLÉES =================
+    % C vers M : descente protégée à X=-0.85 (pile au centre, loin de la boîte rouge)
+    \draw[dashedline, rounded corners] (C.east) -- (-0.85, -5.0) -- (-0.85, -15.2) -| (M.north);
+    %
+    % Prolongation de la ligne entre les boîtes vers Flux Vidéo
+    \draw[dashedline, rounded corners] (-0.85, -15.2) -- (-0.85, -19.0) -| ([xshift=-15pt]J.north);
+    %
+    % D vers K : Contournement extérieur à X=6.0 (bien avant le bracket)
+    \draw[dashedline, rounded corners] (D.east) -- (6.0, -5.0) |- (K.east);
+    %
+    \end{tikzpicture}%
+    }
     \caption{Schéma de la logique globale du code}
     \label{fig:logique_code}
 \end{figure}
