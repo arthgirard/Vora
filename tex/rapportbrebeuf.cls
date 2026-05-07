@@ -77,6 +77,7 @@
     date=iso, % Format de date ISO
     seconds=true % Précision des dates si disponible
 ]{biblatex}
+\setlength{\bibitemsep}{0.7em}
 \let\@oldprintbibliography\printbibliography
 \renewcommand{\printbibliography}{\@oldprintbibliography[heading=bibintoc]}
 
