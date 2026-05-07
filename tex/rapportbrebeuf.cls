@@ -1,7 +1,7 @@
 % Classe de rapport – Collège Jean-de-Brébeuf
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesClass{rapportbrebeuf}[2026/05/06 Classe de rapport Brébeuf]
+\ProvidesClass{rapportbrebeuf}[2026/05/07 Classe de rapport Brébeuf]
 
 % Classe de base
 \LoadClass[11pt, letterpaper]{article}
@@ -27,9 +27,10 @@
 % IMAGES
 \RequirePackage{graphicx}
 \RequirePackage{float}
+\RequirePackage{subcaption}
 
 % GRAPHIQUES
-\usepackage{tikz}
+\RequirePackage{tikz}
 \usetikzlibrary{positioning, fit, calc, shapes.geometric, arrows.meta, decorations.pathreplacing}
 
 % MATHS
@@ -76,7 +77,8 @@
     date=iso, % Format de date ISO
     seconds=true % Précision des dates si disponible
 ]{biblatex}
-\setlength{\bibitemsep}{0.7em}
+\let\@oldprintbibliography\printbibliography
+\renewcommand{\printbibliography}{\@oldprintbibliography[heading=bibintoc]}
 
 % VARIABLES DE LA PAGE TITRE
 % Chaque champ est défini vide par défaut

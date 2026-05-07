@@ -27,7 +27,7 @@
 \debutCorps
 
 % ÉPIGRAPHE
-\epigraph{\textit{« L'informatique ne concerne plus les ordinateurs. Elle concerne la vie. »}}{--- \textsc{Nicholas Negroponte}}
+\epigraph{\textit{« L'informatique ne concerne plus les ordinateurs. Elle concerne la vie. »}}{--- \textsc{Nicholas Negroponte}, \textit{fondateur du MIT Media Lab}}
 \vspace{1em}
 
 % ABSTRACT
@@ -277,7 +277,7 @@ Pour comprendre l'efficacité de cette méthode, il faut examiner les propriét�
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{figure_smith_15_1_og.png}
+    \includegraphics[width=0.8\textwidth]{figure_smith_15_1.png}
     \caption{On observe qu'une fenêtre plus large réduit davantage le bruit mais dégrade la netteté des fronts. La moyenne mobile constitue la solution optimale pour minimiser le bruit tout en préservant la réponse à l'échelon. Figure extraite et adaptée du chapitre 15 de \cite{smith1997guide}.}
     \label{fig:smith_phase}
 \end{figure}
@@ -320,7 +320,40 @@ mouvement physiologique, garantissant ainsi la fiabilité de la surveillance de 
 \newpage
 \section{Analyse et discussion}
 
-% [À compléter]
+L'objectif principal de ce projet consistait à concevoir un logiciel capable de détecter la fatigue oculaire chez l'utilisateur par une analyse de la fréquence de ses clignements d'yeux. Cette étape de détection a été accomplie avec succès, permettant au système d'identifier les clignements pour tout utilisateur situé devant un ordinateur. Comme exposé dans les recherches individuelles et dans la description du projet, la précision atteinte rend les erreurs logicielles rares et presque négligeables quant à la fiabilité globale du système. 
+
+\begin{figure}[H]
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{main_interface.jpg}
+         \caption{Interface de démarrage et détection}
+         \label{fig:interface_demarrage}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{graphics.jpg}
+         \caption{Tableau de bord et analyses}
+         \label{fig:interface_analyse}
+     \end{subfigure}
+     \caption{Aperçu de l'interface utilisateur de Vora}
+     \label{fig:ui_vora}
+\end{figure}
+
+Cependant, bien que les erreurs de détection soient peu fréquentes, le logiciel demeure tributaire de la performance de la bibliothèque MediaPipe. Puisque cette bibliothèque assure l'intégralité de la détection des points faciaux, il existe une dépendance directe envers sa capacité réelle à localiser ces repères. Bien que Google ait entraîné ce modèle sur plus de 30~000 images imparfaites pour réduire le bruit et les erreurs de détection, la bibliothèque présente certains défauts susceptibles d'induire des erreurs logicielles.
+
+En premier lieu, la précision de l'extraction des points faciaux diminue en environnement sombre. Dans l'obscurité, le capteur de la caméra applique un gain au signal électrique capté par chaque pixel. Alors qu'en plein jour les signaux sont clairs et forts, l'absence de photons en milieu sombre force la caméra à amplifier artificiellement le signal reçu pour produire une image. Ce processus amplifie simultanément le bruit numérique, créant une texture granuleuse. Le réseau de neurones chargé d'identifier les points du visage est alors limité par ce bruit, ce qui génère des données instables pouvant empêcher le calcul de l'indice d'ouverture de l'œil (\textit{EAR}). Par conséquent, la détection est limitée non seulement par la qualité du matériel optique, mais aussi par la difficulté de MediaPipe à fournir des données stables sous faible éclairage.
+
+De plus, le temps d'exposition de la caméra en milieu obscur introduit un flou de mouvement (« \textit{motion blur} »). En plein jour, la caméra effectue des captures ultra-rapides, tandis que dans l'obscurité, elle augmente le temps de pose pour capter davantage de lumière. Le clignement étant l'un des mouvements les plus rapides du corps humain, l'augmentation du temps d'exposition rend le calcul et la détection de ces événements beaucoup plus complexes. Ces contraintes matérielles et logicielles dictent donc les limites de précision du logiciel dans des conditions non optimales.
+
+La morphologie faciale constitue une autre variable influençant la précision. Une étude de Dutta et al. (2020) souligne que l'annotation manuelle des images servant à l'entraînement de l'IA comporte des biais inconscients de la part des opérateurs humains, selon les traits des visages traités. Ces biais peuvent potentiellement être intégrés par le modèle, affectant la précision selon l'utilisateur.
+
+% Paragraphe sur le UI et le scaling de la caméra (À rajouter ultérieurement)
+
+Concernant la détection de la fatigue, plusieurs limites sont également identifiées. Le système s'appuie sur un seuil empirique de la fréquence de clignements par minute issu de la littérature scientifique. Selon l'étude \textit{Dry Eyes and Video Display Terminals} publiée par Tsubota dans le \textit{New England Journal of Medicine}, le taux moyen de clignements passe de 22/min à une valeur comprise entre 7 et 10/min lors d'un travail sur écran \cite{tsubota1993dryeyes}. Un seuil de fatigue fixé à 10 clignements par minute a donc été retenu. Un passage sous ce seuil est considéré comme un indicateur fort de risque de sécheresse et de fatigue visuelle.
+
+Toutefois, cette étude repose sur un échantillon de 104 employés de bureau au Japon. Par conséquent, le logiciel ne s'adapte pas spécifiquement aux particularités physiologiques de chaque utilisateur. Une solution consisterait à implémenter un modèle d'apprentissage autonome capable de s'ajuster à l'utilisateur et à sa progression en tenant compte de facteurs tels que le moment de la journée, le type d'activité informatique, l'âge ou le sexe. En somme, l'utilisation exclusive d'une fréquence fixe limite la capacité à détecter la fatigue avec une précision absolue, celle-ci dépendant d'une multitude de facteurs dynamiques.
 
 % CONCLUSION
 \newpage
@@ -330,7 +363,7 @@ mouvement physiologique, garantissant ainsi la fiabilité de la surveillance de 
 
 % BIBLIOGRAPHIE
 \newpage
-\printbibliography[heading=bibintoc]
+\printbibliography
 
 % ANNEXE
 \newpage
