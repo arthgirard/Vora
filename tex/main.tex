@@ -3,15 +3,13 @@
 %  Arthur Girard, François Lamarre, Maxime Vanseveren
 
 \documentclass{rapportbrebeuf}
-
-% Fichier de bibliographie
 \addbibresource{references.bib}
 
 % CHAMPS DE LA PAGE TITRE
 \auteurs{Arthur \textsc{Girard}, François \textsc{Lamarre}, Maxime \textsc{Vanseveren}}
 \titre{VORA}
 \soustitre{RAPPORT FINAL}
-\presenteA{Alexandre Desfossés-Foucault}
+\presenteA{Alexandre Desfossés Foucault}
 \cours{Programmation, robotique et traitement de signal INT-SM1-24}
 \groupe{Groupe 1}
 \institution{Collège Jean-de-Brébeuf}
@@ -47,7 +45,7 @@ fatigue oculaire, tout en promouvant de meilleures habitudes de travail dans l'�
 
 \textit{Vora} est conçu pour agir comme une sentinelle pour la santé oculaire des utilisateurs
 d'écrans. Pour ce faire, le programme utilise un flux vidéo en direct pour calculer l'indice
-d'ouverture des paupières avec un modèle pré-entraîné de \textit{MediaPipe}, permettant ainsi de
+d'ouverture des paupières avec un modèle pré-entraîné de MediaPipe, permettant ainsi de
 comptabiliser précisément les clignements par minute. De cette façon, le logiciel permet de
 compenser la baisse naturelle de ce réflexe lors d'une concentration intense devant un écran.
 D'ordre global, le fonctionnement est simple : le programme calcule une moyenne de cette
@@ -67,12 +65,12 @@ programme ne manipule que des vecteurs numériques issus des points de repère f
 garantissant une anonymité totale et un logiciel non-intrusif.
 
 Sur le plan environnemental, le projet vise un impact minimal en termes d'énergie et de
-ressources. En effet, l'utilisation de bibliothèques optimisées comme \textit{MediaPipe} permet
+ressources. En effet, l'utilisation de bibliothèques optimisées comme MediaPipe permet
 une exécution sur le processeur central plutôt que sur la carte graphique, réduisant
 significativement la consommation électrique lors d'une utilisation prolongée. Par ailleurs, en
 évitant le recours au stockage de données volumineuses ou à des services dans le nuage
 (utilisation d'un modèle pré-entraîné local), \textit{Vora} minimise l'empreinte carbone liée au
-transfert et à la conservation de données inutiles. \cite{vora_github}
+transfert et à la conservation de données inutiles. 
 
 % LOGIQUE DU CODE ET RÉPARTITION
 \newpage
@@ -80,7 +78,7 @@ transfert et à la conservation de données inutiles. \cite{vora_github}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth, height=0.87\textheight, keepaspectratio]{logique_du_code.png}
+    \includegraphics[width=0.8\textwidth]{logique_du_code.png}
     \caption{Schéma de la logique globale du code}
     \label{fig:logique_code}
 \end{figure}
@@ -111,17 +109,9 @@ dans l'interface utilisateur, fournissant l'idée et le code derrière la transm
 \newpage
 \section{Recherches individuelles}
 
-\subsection{Arthur Girard}
+\subsection{L'efficacité du filtre à différences de moyennes mobiles (Arthur Girard)}
 
-Dans le cadre du développement du projet \textit{Vora}, l'utilisation de la vision par ordinateur
-est primordiale pour surveiller l'état physiologique de l'utilisateur de manière non invasive. En
-s'appuyant sur les bibliothèques OpenCV pour la gestion des flux vidéo et MediaPipe pour
-l'extraction de repères faciaux tridimensionnels, Vora analyse le comportement des paupières en
-temps réel. Cependant, les données brutes extraites, telles que l'ouverture de l'œil, sont soumises
-à un bruit important (grain du capteur vidéo, micromouvements, variations d'éclairage) qui entrave
-la précision de la détection des clignements. Ainsi, pour pallier ce problème, une stratégie de
-traitement de signal spécifique a été implémentée dans le code du logiciel : le filtrage par double
-moyenne mobile (\textit{EARM}).
+Dans \textit{Vora}, la vision par ordinateur (OpenCV et MediaPipe) analyse le comportement des paupières en temps réel. Toutefois, les données brutes extraites sont soumises à un bruit environnemental important (grain du capteur, micromouvements, variations d'éclairage). Un simple seuil fixe étant inefficace face aux variations morphologiques et lumineuses, le logiciel nécessite un mécanisme d'isolation adaptatif pour distinguer un clignement physiologique du bruit de fond : le filtrage par double moyenne mobile (\textit{EARM}).
 
 Dans les faits, l'enjeu majeur de \textit{Vora} est de distinguer un événement provoqué par un
 réflexe d'un bruit de fond aléatoire. Un simple seuil fixe sur l'ouverture de l'œil ne suffit pas,
@@ -129,100 +119,76 @@ car la morphologie de chaque utilisateur et les conditions lumineuses varient co
 donc nécessaire de mettre en œuvre un mécanisme d'isolation mathématique capable de s'adapter
 dynamiquement à ces variations.
 
-Cette recherche individuelle s'articulera donc autour de la question suivante :
+Ainsi, cette recherche s'articulera autour de la question suivante :
 
 \begin{quote}
-  \textbf{Comment l'utilisation d'un filtre à différence de moyennes mobiles permet-elle d'isoler
+  \raggedright
+  \textit{Comment l'utilisation d'un filtre à différence de moyennes mobiles permet-elle d'isoler
   mathématiquement des signaux physiologiques en vision par ordinateur ?}
 \end{quote}
 
 Avant d'isoler le signal, il faut définir la métrique source. \textit{Vora} utilise l'\textit{Eye
 Aspect Ratio} (\textit{EAR}), une valeur scalaire calculée à partir de six points de repère faciaux
 entourant chacun des yeux. Pour chaque œil, l'\textit{EAR} est calculé selon la formule suivante :
-
 \[
   EAR = \frac{\lVert p_2 - p_6 \rVert + \lVert p_3 - p_5 \rVert}{2\,\lVert p_1 - p_4 \rVert}
 \]
-
 Où $p_n$ représente les coordonnées 3D des points extraits par MediaPipe. L'\textit{EAR}
 quantifie le degré d'ouverture de l'œil : il est stable lorsque l'œil est ouvert (environ 0,3) et
-chute rapidement vers 0 lors d'un clignement.
+chute rapidement vers 0 lors d'un clignement \cite{soukupova2016real}.
 
-Toutefois, l'\textit{EAR} n'est jamais un signal « propre », car celui-ci contient le bruit haute
-fréquence causé par l'imprécision du capteur de la caméra lors de la localisation des points à
-chaque frame, ainsi que la dérive basse fréquence causée par les changements de posture de
-l'utilisateur ou les mouvements de tête qui modifient la valeur de base de l'\textit{EAR} sans
-qu'il y ait de clignement.
+Toutefois, l'\textit{EAR} n'est jamais un signal « propre ». Il intègre du bruit haute fréquence (imprécisions du capteur) et subit une dérive basse fréquence (changements de posture) qui modifie sa valeur de base indépendamment des clignements réels.
 
 La solution retenue dans \textit{Vora} pour répondre à cette problématique est le filtre
 \textit{EARM}, qui repose sur une différence de moyennes mobiles (\textit{Difference of Moving
-Averages} -- DoMA). Pour ce faire, le système maintient deux moyennes mobiles simples
-(\textit{Simple Moving Average} -- SMA) calculées en parallèle sur un tampon d'historique.
-D'abord, on calcule une moyenne dite « lente » de 30 frames pour capturer la tendance de fond,
-soit l'état « œil ouvert » de l'utilisateur. Celle-ci agit comme une ligne de base dynamique, à
-laquelle on ajoute ensuite une moyenne « rapide » de 3 frames pour suivre les variations
-immédiates du signal tout en lissant le grain haute fréquence du capteur. L'isolation du signal de
-clignement est alors définie par la différence entre les deux moyennes :
-
+Averages -- DoMA}). Pour ce faire, le système maintient deux moyennes mobiles simples
+(\textit{Simple Moving Average -- SMA}) calculées en parallèle sur un tampon d'historique.
+Pour ce faire, le système calcule en parallèle deux moyennes mobiles simples (SMA). Une moyenne « lente » (30 frames) agit comme ligne de base dynamique pour capturer la tendance de fond, tandis qu'une moyenne « rapide » (3 frames) suit les variations immédiates en lissant le grain du capteur. L'isolation du signal de clignement est alors définie par la différence entre les deux moyennes :
 \[
   EARM = SMA_{lente} - SMA_{rapide}
 \]
-
 Mathématiquement, cette soustraction annule les composantes communes aux deux fenêtres. En
 effet, si l'utilisateur penche la tête lentement, les deux moyennes varient de la même manière et
 leur différence reste proche de zéro. En revanche, lors d'un clignement, la chute de l'\textit{EAR}
 est si rapide que seule la moyenne rapide la détecte immédiatement. La moyenne lente reste « en
 retard » sur son niveau haut, créant un pic massif dans l'\textit{EARM} et permettant une
-détection fiable.
+détection fiable \cite{kuwahara2022eye}.
 
-Pour comprendre l'efficacité de cette méthode, il faut examiner les propriétés fréquentielles des
-moyennes mobiles. Concrètement, une moyenne mobile simple de longueur \textit{M} est un filtre
-à réponse impulsionnelle finie (FIR) dont le noyau est un rectangle de poids 1/\textit{M}. Sa
-fonction de transfert dans le domaine des fréquences est une fonction \textbf{sinc} discrète :
+Pour comprendre l'efficacité de cette méthode, il faut examiner les propriétés de la moyenne mobile à travers les travaux de Steven W. Smith. Dans le chapitre 15 de son ouvrage \textit{The Scientist and Engineer's Guide to Digital Signal Processing} \cite{smith1997guide}, Smith démontre que la moyenne mobile est le filtre linéaire optimal pour une tâche fondamentale en vision par ordinateur : réduire le bruit tout en préservant la netteté d'une montée ou d'une chute brute du signal : 
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figure_smith_15_1_og.png}
+    \caption{On observe qu'une fenêtre plus large réduit davantage le bruit mais dégrade la netteté des fronts. La moyenne mobile constitue la solution optimale pour minimiser le bruit tout en préservant la réponse à l'échelon. Figure extraite et adaptée du chapitre 15 de \cite{smith1997guide}.}
+    \label{fig:smith_phase}
+\end{figure}
+
+
+Pour Vora, cela signifie que la moyenne mobile est l'outil le plus performant pour supprimer le grain de l'image sans «~arrondir~» la chute de l'\textit{EAR}, ce qui permet de capturer l'instant exact du clignement. Smith explique toutefois que ce filtre est médiocre dans le domaine fréquentiel pur, car sa réponse en fréquence suit une fonction \textbf{sinc} discrète présentant une atténuation très lente des fréquences indésirables : 
 \[
   \lvert H(e^{jw}) \rvert = \frac{1}{M} \left| \frac{\sin(\omega M/2)}{\sin(\omega /2)} \right|
 \]
+C'est ici que réside la pertinence du filtre DoMA de Vora, car en utilisant la différence de ces deux fonctions, on compense la faiblesse naturelle de la moyenne mobile dans le domaine des fréquences. En fait, on transforme deux filtres « médiocres » en une fenêtre de transmission plus sélective (un filtre passe-bande) qui rejette le courant continu (DC) lié à la posture et les hautes fréquences liées au bruit du capteur. Ce qui subsiste dans le signal \textit{EARM} est précisément le signal physiologique pur, centré autour de la fréquence naturelle des clignements humains.
 
-Cette fonction atténue les fréquences supérieures à 1/\textit{M}. Ainsi, en d'autres termes, plus
-la fenêtre est grande, plus le filtrage est agressif envers les variations rapides.
+Cette isolation spectrale est renforcée par une propriété fondamentale des filtres à moyenne mobile : la linéarité de phase. Contrairement aux filtres à réponse impulsionnelle infinie (IIR) comme le filtre de Butterworth, la moyenne mobile ne déforme pas le signal temporellement. Un filtre de Butterworth peut introduire des déphasages non linéaires qui déplacent les composantes fréquentielles les unes par rapport aux autres, ce qui risquerait de distordre la forme du clignement \cite{smith1997guide}. Pour une application comme Vora, cela signifie que le début et la fin exacts du mouvement des paupières sont préservés mathématiquement, ce qui s'avère indispensable pour une analyse fine de la fatigue.
 
-Par ailleurs, le filtre DoMA est mathématiquement équivalent à un filtre passe-bande. En
-soustrayant la moyenne rapide (qui laisse passer les fréquences jusqu'au bruit de grain) de la
-moyenne lente (qui ne conserve que le courant continu), le système crée une fenêtre de
-transmission sélective. En faisant ainsi, les très basses fréquences, comme les dérives de
-luminosité ou les changements de posture, sont présentes dans les deux moyennes et s'annulent
-donc lors de la soustraction. À l'opposé, les bruits de capteur extrêmement rapides sont lissés par
-la moyenne rapide elle-même. Ce qui subsiste dans le signal \textit{EARM} est précisément la
-bande de fréquence correspondant à la dynamique humaine du clignement, généralement située
-autour de 3 Hz pour un événement de 300 ms.
-
-Cette isolation spectrale est renforcée par une propriété fondamentale des filtres à moyenne
-mobile : la linéarité de phase. Contrairement aux filtres à réponse impulsionnelle infinie (IIR)
-comme le filtre de Butterworth, souvent utilisé en analyse de signaux cardiaques, la moyenne
-mobile ne déforme pas le signal temporellement. Un filtre de Butterworth peut introduire des
-déphasages non linéaires qui déplacent les composantes fréquentielles les unes par rapport aux
-autres, ce qui risquerait de distordre la forme du clignement. Pour une application comme Vora,
-cela signifie que le début et la fin exacts du mouvement des paupières sont préservés
-mathématiquement, ce qui s'avère indispensable pour une analyse fine de la fatigue.
-
-L'isolation mathématique permet enfin de transformer une détection statique en un processus
+Le tout permet alors enfin de transformer une détection statique en un processus
 dynamique et adaptatif. Puisque l'\textit{EARM} est recentré autour de zéro par la soustraction de
 la moyenne lente, le système peut appliquer un seuil de détection relatif plutôt qu'absolu. Dans le
 code de Vora, cette isolation est exploitée par une boucle de rétroaction qui analyse les pics de
 signal des clignements passés pour ajuster le seuil de détection en temps réel. Cette capacité
-d'adaptation montre alors bien que c'est le filtre DoMA qui permet à l'algorithme de comprendre
+d'adaptation montre alors bien comment le filtre DoMA permet à l'algorithme de comprendre
 l'écart entre un état stable (œil ouvert) et une impulsion physiologique (clignement) à travers le
 bruit environnemental.
 
 En conclusion, l'utilisation d'un filtre à différence de moyennes mobiles offre une solution
 robuste au paradoxe de la vision par ordinateur : obtenir une précision biologique à partir de
 capteurs imparfaits. En isolant la différence entre une tendance lente et une dynamique plus
-rapide, le filtre DoMA retire mathématiquement les artefacts pour ne laisser que l'essence du
+rapide, le filtre DoMA retire les artefacts pour ne laisser que l'essence du
 mouvement physiologique, garantissant ainsi la fiabilité de la surveillance de la fatigue oculaire.
 
 \newpage
-\subsection{François Lamarre}
+\subsection{Fonctionnement de MediaPipe (François Lamarre)}
 
 % [À compléter]
 
@@ -245,7 +211,7 @@ mouvement physiologique, garantissant ainsi la fiabilité de la surveillance de 
 
 % BIBLIOGRAPHIE
 \newpage
-\printbibliography[heading=bibintoc, title={Bibliographie}]
+\printbibliography[heading=bibintoc]
 
 % ANNEXE
 \newpage

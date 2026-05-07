@@ -4,7 +4,7 @@
 \ProvidesClass{rapportbrebeuf}[2026/05/06 Classe de rapport Brébeuf]
 
 % Classe de base
-\LoadClass[12pt, letterpaper]{article}
+\LoadClass[11pt, letterpaper]{article}
 
 % ENCODAGE ET LANGUE
 \RequirePackage[T1]{fontenc}
@@ -55,6 +55,7 @@
 % LIENS
 \RequirePackage[hidelinks]{hyperref}
 \RequirePackage{xurl}
+\urlstyle{same}
 
 % DIVERS
 \RequirePackage{hanging}
@@ -63,9 +64,14 @@
 \setlength{\parskip}{6pt plus 2pt minus 1pt}
 
 % BIBLIOGRAPHIE
-% Note : \addbibresource{...} doit rester dans le fichier principal
 \RequirePackage{csquotes}
-\RequirePackage[backend=biber]{biblatex}
+\RequirePackage[
+    backend=biber,
+    style=ieee, % Active le format IEEE
+    urldate=iso, % Format de date ISO (AAAA-MM-DD)
+    date=iso, % Format de date ISO
+    seconds=true % Précision des dates si disponible
+]{biblatex}
 
 % VARIABLES DE LA PAGE TITRE
 % Chaque champ est défini vide par défaut
@@ -97,19 +103,19 @@
   \begin{center}
     \@auteurs
 
-    \vspace{5cm}
+    \vfill
 
     \@titre\\[0.2cm]
     \@soustitre
 
-    \vspace{5cm}
+    \vfill
 
     Présenté à\\[0.2cm]
     \@presenteA\\[0.2cm]
     \@cours\\[0.2cm]
     \@groupe
 
-    \vspace{5cm}
+    \vfill
 
     \@institution\\[0.2cm]
     \@departement\\[0.2cm]
