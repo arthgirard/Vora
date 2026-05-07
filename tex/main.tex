@@ -218,7 +218,7 @@ dans l'interface utilisateur, fournissant l'idée et le code derrière la transm
 
 \subsubsection{François Lamarre}
 
-% [À compléter]
+Dans la conception de Vora, Francois a principalement travaillé sur l’extraction des données à l’aide de la librairie MediaPipe. Cette extraction avait comme rôle d’extraire une liste de dictionnaires retournant les coordonnées des points sur le visage. Par ailleurs, celui-ci a également conçu le système derrière la gestion des données, en créant la base de données SQLite3 et la gestion de celle-ci.  
 
 \subsubsection{Maxime Vanseveren}
 
@@ -347,7 +347,7 @@ En premier lieu, la précision de l'extraction des points faciaux diminue en env
 
 De plus, le temps d'exposition de la caméra en milieu obscur introduit un flou de mouvement (« \textit{motion blur} »). En plein jour, la caméra effectue des captures ultra-rapides, tandis que dans l'obscurité, elle augmente le temps de pose pour capter davantage de lumière. Le clignement étant l'un des mouvements les plus rapides du corps humain, l'augmentation du temps d'exposition rend le calcul et la détection de ces événements beaucoup plus complexes. Ces contraintes matérielles et logicielles dictent donc les limites de précision du logiciel dans des conditions non optimales.
 
-La morphologie faciale constitue une autre variable influençant la précision. Une étude de Dutta et al. (2020) souligne que l'annotation manuelle des images servant à l'entraînement de l'IA comporte des biais inconscients de la part des opérateurs humains, selon les traits des visages traités. Ces biais peuvent potentiellement être intégrés par le modèle, affectant la précision selon l'utilisateur.
+Un modèle tel que MediaPipe, bien qu'entraîné sur une vaste base de données, peut présenter des variations de précision selon la morphologie faciale. En effet, les travaux de David Leslie pour l'Alan Turing Institute démontrent que les annotateurs humains, en plaçant manuellement les points de repère sur les yeux, introduisent des biais inconscients. Ces erreurs d'étiquetage (\textit{labeling}), influencées par la morphologie ou l'origine ethnique des visages observés, sont par la suite assimilées par l'intelligence artificielle. Ce phénomène est susceptible de fausser la détection des mouvements oculaires si la physionomie de l'utilisateur ne correspond pas aux normes subjectives des annotateurs \cite{leslie2020understanding}.
 
 % Paragraphe sur le UI et le scaling de la caméra (À rajouter ultérieurement)
 
