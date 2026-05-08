@@ -202,6 +202,7 @@ class App:
             expand=True,
         )
 
+        # Nous avons demandé à Claude la façon optimale pour diffuser le flux vidéo directement dans l'interface
         # image de base du flux vidéo — gapless_playback évite le flash entre les frames
         self.video_feed = ft.Image(
             src="logo_black.png", # Argument src requis par Flet
@@ -351,7 +352,7 @@ class App:
         self.card2 = make_card(self.chart2)
         self.card3 = make_card(self.chart3)
 
-        # haut: deux histogrammes cote a cote — bas: nuage de points pleine largeur
+        # haut: deux histogrammes cote a cote, bas: nuage de points pleine largeur
         row_top = ft.Row([self.card1, self.card3], expand=True, spacing=10)
         row_bottom = ft.Row([self.card2], expand=True)
 
@@ -388,6 +389,8 @@ class App:
         for fig in [self.fig1, self.fig2, self.fig3]:
             fig.patch.set_facecolor(bg)
             fig.tight_layout(pad=3.5)
+
+    # inspiré de la fonction de Claude pour le flux vidéo
 
     def _get_chart_base64(self, fig):
         # sauvegarde propre d'une figure au format data uri
@@ -569,6 +572,7 @@ class App:
         if self.backend_instance:
             self.backend_instance.seuil_clignements = self.seuil_clignements
 
+    # Contribution de Claude pour comprendre comment utiliser base64 correctement afin de diffuser l'image vidéo d'OpenCV
     async def _boucle_affichage(self, instance_cible):
         while instance_cible and getattr(instance_cible, 'running', False):
             if not self.affichage_pause:
