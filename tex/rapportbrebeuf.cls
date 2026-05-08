@@ -17,6 +17,9 @@
   left=3.17cm, right=3.17cm
 ]{geometry}
 \RequirePackage{fancyhdr}
+\RequirePackage{rotating}
+\RequirePackage{array}
+\RequirePackage{booktabs}
 
 % TYPOGRAPHIE
 \RequirePackage{microtype}
