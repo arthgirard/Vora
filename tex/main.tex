@@ -359,7 +359,15 @@ Toutefois, cette étude repose sur un échantillon de 104 employés de bureau au
 \newpage
 \section{Conclusion}
 
-% [À compléter]
+Après plusieurs semaines de travail, le projet \textit{Vora} est désormais capable de détecter les yeux et leurs clignements, d’enregistrer les données dans un fichier local et d’alerter l’utilisateur si le nombre de clignements est sous le seuil ou si une présence de vingt minutes devant l’écran est détectée. Pour être plus précis, les résultats montrent que l’approche combinant l’\textit{Eye Aspect Ratio} (\textit{EAR}) ainsi que l’utilisation de moyennes mobiles permet d’améliorer la stabilité des données en éliminant les faux positifs et les faux négatifs, ce qui permet une analyse fiable. 
+
+Ces fonctionnalités sont intégrées dans une interface graphique pouvant afficher la caméra et les données recueillies, traitées sous forme de graphiques. Sachant que le but était de concevoir un assistant pouvant détecter et prévenir la fatigue oculaire, l’objectif a été atteint. 
+
+Cependant, certaines limites demeurent. Les tests montrent que, même si dans la plupart des cas les données sont correctes, la précision diminue lorsque la luminosité est trop faible ou que la qualité de la caméra est insuffisante. Cela s’explique par le fonctionnement de la bibliothèque MediaPipe, tel que détaillé dans la section d'analyse. De plus, le modèle se base sur des études qui généralisent l’information (notamment le seuil de clignement situé entre 10 et 15) et non sur un modèle personnalisé pour chaque utilisateur. 
+
+À travers le projet \textit{Vora}, une autre problématique liée à l’augmentation des interactions prolongées avec les écrans peut être observée. Plusieurs études montrent qu’il existe une corrélation entre le temps passé devant un écran et le risque de dépression et d’anxiété. Dans un monde où la technologie prend de plus en plus de place, la question de l’impact de ces technologies ne se limite plus aux effets physiques, mais s’étend également aux effets psychologiques. 
+
+Afin de répondre à cette problématique, \textit{Vora} pourrait évoluer vers un système d’assistance plus général. À travers la combinaison de la vision par ordinateur et de l’analyse comportementale, il serait possible de surveiller non seulement la santé oculaire, mais aussi certains indicateurs liés au bien-être mental, créant ainsi un système capable de participer activement au bien-être global de l’utilisateur. Bien évidemment, certains ajouts doivent être faits afin que \textit{Vora} puisse être utilisé par le grand public, comme l'exportation de l’application vers un format exécutable avec un installateur simplifié, le portage sur mobile et la création d’un modèle d’apprentissage autonome permettant de s’adapter à chaque utilisateur.
 
 % BIBLIOGRAPHIE
 \newpage
