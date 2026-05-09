@@ -21,6 +21,21 @@
 \RequirePackage{array}
 \RequirePackage{booktabs}
 
+% NOTE
+\usepackage{framed}
+\usepackage{xcolor}
+
+% La définition envoyée par votre collègue :
+\renewenvironment{leftbar}{
+  \def\FrameCommand{
+    {\color{lightgray}\vrule width 2pt}
+  \hspace{8pt}                         
+}
+  \MakeFramed{\advance\hsize-\width\FrameRestore}
+}{%
+  \endMakeFramed
+}
+
 % TYPOGRAPHIE
 \RequirePackage{microtype}
 \RequirePackage{lmodern}
@@ -32,6 +47,7 @@
 \RequirePackage{float}
 \RequirePackage{subcaption}
 
+
 % GRAPHIQUES
 \RequirePackage{tikz}
 \usetikzlibrary{positioning, fit, calc, shapes.geometric, arrows.meta, decorations.pathreplacing}
@@ -42,7 +58,6 @@
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 \definecolor{medblue}{rgb}{0.0,0.45,0.74}
-
 
 % MATHS
 \RequirePackage{amsmath, amssymb}

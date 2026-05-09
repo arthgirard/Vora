@@ -225,6 +225,12 @@ Dans la conception de Vora, Francois a principalement travaillé sur l’extract
 
 Maxime a principalement été responsable de la confection de l’interface graphique avec la bibliothèque Flet. Avec l’aide d’Arthur, Maxime a aussi fusionné l’algorithme d’arrière-plan (backend) a l’interface utilisateur (frontend) à l’aide de la librairie base64, permettant l’affichage en temps réel des graphiques et de la caméradans les onglets « Analyse » et « Démarrage » respectivement. 
 
+\vfill 
+
+\begin{leftbar}
+    \textbf{NOTE :} Des outils d'intelligence artificielle générative intégrés, tels que Gemini et Claude Code, ont été sollicités tout au long du développement de ce projet. Ces interactions ayant eu lieu au sein de multiples discussions dispersées, il est matériellement impossible d'en répertorier et d'en partager chaque lien individuel. Toutefois, pour garantir une transparence totale, l'intégralité du code généré ou assisté par une IA a été systématiquement identifiée par un marquage direct au sein des fichiers sources.
+\end{leftbar}
+
 % RECHERCHES INDIVIDUELLES
 \newpage
 \section{Recherches individuelles}
@@ -361,12 +367,12 @@ Posons que $L=50$ couches (ou un réseau de neurone profond quelconque) :
 
 \[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (0,5)^{49} \cdot \frac{\partial a_1}{\partial w_1} \]
 
-Le gradient \textbf{"disparaît"}, il devient une valeur minime : 
+Le gradient \textbf{« disparaît »}, il devient une valeur minime : 
 \[ (0,5)^{49} \approx 10^{-15} \]
 
-Lorsqu'on met à jour $w_1$, il n'y a presque pas de différence. Le gradient devient "invisible" :
+Lorsqu'on met à jour $w_1$, il n'y a presque pas de différence. Le gradient devient « invisible » :
 \[ w_{\text{nouveau}} = w_1 - \alpha \frac{\partial C}{\partial w_1} \approx w_1 - \alpha \cdot 10^{-15} \]
-Bien que cela soit un exemple simplifié, pour un réseau de neurone à plusieurs couches et poids, il est entièrement possible que le gradient "disparaisse" lorsqu'il dérive par rapport à un poids loin dans le réseau. Alors, comment un réseau de neurone résiduel permet d'éviter ce problème ? Voici un schéma simplifié d'un réseau de neurone résiduel :
+Bien que cela soit un exemple simplifié, pour un réseau de neurone à plusieurs couches et poids, il est entièrement possible que le gradient « disparaisse » lorsqu'il dérive par rapport à un poids loin dans le réseau. Alors, comment un réseau de neurone résiduel permet d'éviter ce problème ? Voici un schéma simplifié d'un réseau de neurone résiduel :
 
 % --- STYLES RÉSEAU RÉSIDUEL ---
 \definecolor{cyan_custom}{RGB}{0, 188, 212}
@@ -411,7 +417,7 @@ Bien que cela soit un exemple simplifié, pour un réseau de neurone à plusieur
     \caption{Unité résiduelle compacte (ResNet).}
 \end{figure}
 
-Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entraîner des réseaux de neurones profonds sans perdre le signal du gradient. L'entrée $x$ traverse d'abord les couches de calcul. Ce qui est retourné à la fin de ce parcours est la fonction résiduelle $f(x)$.La flèche supérieure représente le saut de connection. C'est la "skip connection". L'entrée $x$ est copiée et "saute" les couches de calcul pour être ajoutée directement plus loin. La sortie finale est donc l'addition des deux chemins :
+Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entraîner des réseaux de neurones profonds sans perdre le signal du gradient. L'entrée $x$ traverse d'abord les couches de calcul. Ce qui est retourné à la fin de ce parcours est la fonction résiduelle $f(x)$.La flèche supérieure représente le saut de connection. C'est la « skip connection ». L'entrée $x$ est copiée et « saute » les couches de calcul pour être ajoutée directement plus loin. La sortie finale est donc l'addition des deux chemins :
 \[ h(x) = f(x) + x \]
 
 On définit d'abord la sortie d'un bloc
@@ -496,14 +502,14 @@ Une image est composée de plusieurs pixels ayant chacun une valeur d’intensit
     \item \textbf{En bas à gauche :} $(0 \cdot 1) + (4 \cdot 0) + (3 \cdot 0) + (1 \cdot 1) = 1$
     \item \textbf{En bas à droite :} $(4 \cdot 1) + (2 \cdot 0) + (1 \cdot 0) + (6 \cdot 1) = 10$
 \end{enumerate}
-
+?
 Note : Cet exemple est grandement inspiré de l'article de Jorge Cardete sur Medium : « Convolutional Neural Networks: A Comprehensive Guide ». SOURCE
 
 
 Lors de l'analyse d’une image, plusieurs noyaux ou « filtres » sont appliqués. Ces filtres correspondent aux poids ($w$) du réseau de neurones. Chaque filtre génère une carte de caractéristiques (feature map) qui est ensuite transmise aux couches suivantes. Dans un contexte plus concret, les filtres vont permettent de trouver des caractéristiques dans une image, par exemple de déterminer le contour d'une personne. La matrice d'entrée peut également inclure du remplissage (padding), consistant à ajouter des zéros sur le contour pour éviter que le noyau ne néglige les valeurs dans les coins. De plus, le noyau peut avoir un pas (stride) différent, déterminant de combien de cases la fenêtre glisse à chaque étape (par exemple, un bond de 1 ou 2 pixels). En résumé, le but d’une couche de convolution est d'extraire des motifs ou des caractéristiques à partir de données d’entrée. Les données produites peuvent ensuite être « aplaties » (flatten) en un vecteur à une dimension pour être traitées par des couches connectées.
 
 Lorsqu'une couche convolutive va sortir ses données, elle peut non seulement être sortit dans un vecteur à une dimensions, mais également sous forme de tenseur pour passer à travers une fonction d'acitvation commme ReLu.
-Alors, un ResNet peut contenir des couches de convolution avec des fonction d'activaiton ReLu, ce qui va permettre de faire des "saut" de connections pour les gradients.
+Alors, un ResNet peut contenir des couches de convolution avec des fonction d'activaiton ReLu, ce qui va permettre de faire des « saut » de connections pour les gradients.
 Dans le cas de la librairie Mediapipe, voici comment le modèle Facemesh permet d'intégrer ces deux types de réseaux de neurones.
 
 
@@ -559,6 +565,7 @@ La figure 5 montre un petit code python qui permet simplifier la logique du rés
     \end{itemize}
 \end{enumerate}
 
+\newpage
 \begin{figure}[htbp]
 \centering
 \begin{lstlisting}[
