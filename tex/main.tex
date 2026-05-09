@@ -53,7 +53,7 @@ fatigue oculaire, tout en promouvant de meilleures habitudes de travail dans l'�
 \newpage
 \section{Introduction}
 
-L'omniprésence des outils numériques dans les environnements professionnels et académiques a transformé les habitudes de travail, mais a également engendré une hausse marquée des troubles oculaires regroupés sous le terme de syndrome de la vision artificielle ou fatigue oculaire numérique. Ce trouble se manifeste par une série de symptômes tels que la sécheresse oculaire, les maux de tête et la vision floue, affectant une proportion croissante d'utilisateurs réguliers d'écrans. La problématique centrale réside dans le fait que la concentration intense exigée par les tâches numériques inhibe le réflexe psychologique naturel du clignement, essentiel à la lubrification de la cornée et à la stabilité du film lacrymal. Cette réduction de l'activité palpébrale entraîne alors une évaporation précoce des larmes, transformant une activité quotidienne en un facteur de stress biologique significatif pour la surface oculaire.
+L'omniprésence des outils numériques dans les environnements professionnels et académiques a transformé les habitudes de travail, mais a également engendré une hausse marquée des troubles oculaires regroupés sous le terme de syndrome de la vision artificielle ou fatigue oculaire numérique. Ce trouble se manifeste par une série de symptômes tels que la sécheresse oculaire, les maux de tête et la vision floue, affectant une proportion croissante d'utilisateurs réguliers d'écrans. La problématique centrale réside dans le fait que la concentration intense exigée par les tâches numériques inhibe le réflexe physiologique naturel du clignement, essentiel à la lubrification de la cornée et à la stabilité du film lacrymal. Cette réduction de l'activité palpébrale entraîne alors une évaporation précoce des larmes, transformant une activité quotidienne en un facteur de stress biologique significatif pour la surface oculaire.
 
 La recherche scientifique a largement documenté ce lien de causalité, notamment à travers les travaux de Mark Rosenfield de l'Université d'État de New York. Dans sa revue intitulée \textit{Computer vision syndrome: a review of ocular causes and potential treatments}, il démontre que l'utilisation d'écrans entraîne une réduction drastique de la fréquence de clignement (pouvant chuter de près des deux tiers par rapport à la normale), ainsi qu'une augmentation préoccupante du nombre de clignements incomplets. Ces travaux soulignent que la fatigue n'est pas uniquement liée à la distance par rapport à l'écran ou à la lumière émise par les dispositifs, mais principalement à la demande cognitive élevée qui modifie le comportement biologique de l'utilisateur en retardant le déclenchement du réflexe de protection de l'oeil \cite{rosenfield2011syndrome}.
 
@@ -67,7 +67,7 @@ Face à ce constat, diverses stratégies préventives ont été explorées, alla
 d'écrans. Pour ce faire, le programme utilise un flux vidéo en direct pour calculer l'indice
 d'ouverture des paupières avec un modèle pré-entraîné de MediaPipe, permettant ainsi de
 comptabiliser précisément les clignements par minute. De cette façon, le logiciel permet de
-compenser la baisse naturelle de ce réflexe lors d'une concentration intense devant un écran. Pour assurer la robustesse de cette détection, l'algorithme intègre un mécanisme d'adaptation dynamique : à chaque clignement confirmé, le seuil de détection est recalibré en fonction de l'amplitude des pics passés du signal \textit{EARM} (ouverture des yeux), permettant au système de s'ajuster en continu aux conditions lumineuses et à la morphologie propre de chaque utilisateur. D'ordre plus global, le fonctionnement est simple : le programme calcule une moyenne de la fréquence palpébrale et déclenche des notifications discrètes si l'hydratation oculaire est jugée insuffisante.
+compenser la baisse naturelle de ce réflexe lors d'une concentration intense devant un écran. Pour assurer la robustesse de cette détection, l'algorithme intègre un mécanisme d'adaptation dynamique : à chaque clignement confirmé, le seuil de détection est recalibré en fonction de l'amplitude des pics passés du signal \textit{EARM} (signal d'ouverture des yeux filtré), permettant au système de s'ajuster en continu aux conditions lumineuses et à la morphologie propre de chaque utilisateur. D'ordre plus global, le fonctionnement est simple : le programme calcule une moyenne de la fréquence palpébrale et déclenche des notifications discrètes si l'hydratation oculaire est jugée insuffisante.
 Parallèlement, \textit{Vora} intègre une gestion intelligente de la règle du « 20-20-20 ».
 Contrairement à un simple minuteur, le décompte des vingt minutes d'activité ne progresse que si
 une présence humaine est détectée devant le poste de travail. Une fois le délai atteint, l'algorithme
@@ -219,11 +219,11 @@ Dans la conception de \textit{Vora}, Arthur a principalement travaillé sur le t
 
 \subsubsection{François Lamarre}
 
-Dans la conception de Vora, Francois a principalement travaillé sur l’extraction des données à l’aide de la librairie MediaPipe. Cette extraction avait comme rôle d’extraire une liste de dictionnaires retournant les coordonnées des points sur le visage. Par ailleurs, celui-ci a également conçu le système derrière la gestion des données, en créant la base de données SQLite3 et la gestion de celle-ci.  
+Dans la conception de Vora, Francois a principalement travaillé sur l’extraction des données à l’aide de la librairie MediaPipe. Cette extraction avait comme rôle d’extraire une liste de dictionnaires retournant les coordonnées des points sur le visage. De plus, François s'est occupé de créer le système de calcul de fréquence palpébrale en créant le gestionnaire de minuteurs pour ce volet. Par ailleurs, celui-ci a également conçu le système derrière la gestion des données, en créant la base de données SQLite3 et la gestion de celle-ci.  
 
 \subsubsection{Maxime Vanseveren}
 
-Maxime a principalement été responsable de la confection de l’interface graphique avec la bibliothèque Flet. Avec l’aide d’Arthur, Maxime a aussi fusionné l’algorithme d’arrière-plan (backend) a l’interface utilisateur (frontend) à l’aide de la librairie base64, permettant l’affichage en temps réel des graphiques et de la caméradans les onglets « Analyse » et « Démarrage » respectivement. 
+Maxime a principalement été responsable de la confection de l’interface graphique avec la bibliothèque Flet. Avec l’aide d’Arthur, Maxime a aussi fusionné l’algorithme d’arrière-plan (backend) à l’interface utilisateur (frontend) à l’aide de la librairie base64, permettant l’affichage en temps réel des graphiques et de la caméra dans les onglets « Analyse » et « Démarrage » respectivement. 
 
 \vfill 
 
@@ -313,16 +313,16 @@ mouvement physiologique, garantissant ainsi la fiabilité de la surveillance de 
 \newpage
 \subsection{Fonctionnement de MediaPipe (François Lamarre)}
 
-Le problème de la détection des points de repère faciaux (Landmarks) en vision par ordinateur a été abordé de multiples manières au cours des trente dernières années. Avant l'émergence des réseaux de neurones, une approche courante pour identifier des objets ou le corps humain reposait sur les structures picturales, qui modélisaient les formes par un assemblage de parties déformables (souvent représentées par des rectangles). Cette méthode s'est toutefois révélée inefficace pour la détection faciale, car elle manquait de la précision nécessaire pour localiser des points dans des zones exigeant une grande précision, comme le contour des yeux ou des paupières.
+Le problème de la détection des points de repère faciaux (Landmarks) en vision par ordinateur a été abordé de multiples manières au cours des trente dernières années. Avant l'émergence des réseaux de neurones, une approche courante pour identifier des objets ou le corps humain reposait sur les structures picturales \cite{felzenszwalb2005pictorial}, qui modélisaient les formes par un assemblage de parties déformables (souvent représentées par des rectangles). Cette méthode s'est toutefois révélée inefficace pour la détection faciale, car elle manquait de la précision nécessaire pour localiser des points dans des zones exigeant une grande précision, comme le contour des yeux ou des paupières.
 
-L'essor des réseaux de neurones, et particulièrement des réseaux de neurones convolutifs (CNN), a permis d'augmenter significativement la précision de ces détections. Notamment, le modèle Face Mesh de Google permet d’identifier plus de 468 points sur le visage. Bien que des nouvelles versions porte des grandes améliorations, ce rapport se concentrera sur le modèle de base, détaillé dans l'étude Real-time Facial Surface Geometry from Monocular Video on Mobile GPUs.(SOURCE)\newline
+L'essor des réseaux de neurones, et particulièrement des réseaux de neurones convolutifs (CNN), a permis d'augmenter significativement la précision de ces détections. Notamment, le modèle Face Mesh de Google permet d’identifier plus de 468 points sur le visage. Bien que des nouvelles versions portent des améliorations (478 points) \cite{ablavatski2020attention}, ce rapport se concentrera sur le modèle de base, détaillé dans l'étude Real-time Facial Surface Geometry from Monocular Video on Mobile GPUs \cite{kartynnik2019realtime}.\newline
 Le modèle peut être séparé en plusieurs étapes :
 
 \begin{enumerate}
-    \item Le flux vidéo est d’abord traité par BlazeFace, un détecteur de visage ultra-léger basé sur une architecture SSD (Single Shot Multi Box Detector). Son rôle est d'identifier la boîte englobante (bouding box) du visage pour isoler la région d'intérêt (ROI)
-    \item Recadrage: pour que le système ne soit pas perturbé par les mouvements de l'utilisateur, il se corrige. Chaque fois que le visage est éloigné de la caméra, cette étape permet de redimensionner le visage détecté. Cette étape revient donc à changer le référentiel pour s'adopter à la position du visage.
+  \item Le flux vidéo est d’abord traité par BlazeFace \cite{bazarevsky2019blazeface}, un détecteur de visage ultra-léger basé sur une architecture SSD (Single Shot Multi Box Detector). Son rôle est d'identifier la boîte englobante (bouding box) du visage pour isoler la région d'intérêt (ROI)
+    \item Recadrage: pour que le système ne soit pas perturbé par les mouvements de l'utilisateur, il se corrige. Chaque fois que le visage est éloigné de la caméra, cette étape permet de redimensionner le visage détecté. Cette étape revient donc à changer le référentiel pour s'adapter à la position du visage.
     \item Estimation des coordonnées par un Réseau Résiduel (Facemesh): Le visage aligné est ensuite passé à travers un réseau de régression résiduel. Cette architecture utilise des blocs de convolution avec des connexions sautés (skip connections) pour prédire directement les coordonnées des 468 points 3D.
-    \item Boucle de rétroaction (mise à jour du ROI): Pour optimiser les performances en temps réel, le modèle utilise les points prédits à l'image précédente pour mettre à jour la région d'intérêt de l'image suivante. Cela permet de sauter l'étape de détection (BlazeFace)sur la majorité des images, en tant que le visage reste dans le champs de vision de la caméra.
+    \item Boucle de rétroaction (mise à jour du ROI): Pour optimiser les performances en temps réel, le modèle utilise les points prédits à l'image précédente pour mettre à jour la région d'intérêt de l'image suivante. Cela permet de sauter l'étape de détection (BlazeFace)sur la majorité des images, en tant que le visage reste dans le champ de vision de la caméra.
 \end{enumerate}
 
 Alors, la question pour cette section du rapport est : « Comment les réseaux de neurones (CNN et ResNet) permettent-ils à MediaPipe d'analyser des images et retourner les points sur le visage avec précision? »
@@ -417,7 +417,7 @@ Bien que cela soit un exemple simplifié, pour un réseau de neurone à plusieur
     \caption{Unité résiduelle compacte (ResNet).}
 \end{figure}
 
-Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entraîner des réseaux de neurones profonds sans perdre le signal du gradient. L'entrée $x$ traverse d'abord les couches de calcul. Ce qui est retourné à la fin de ce parcours est la fonction résiduelle $f(x)$.La flèche supérieure représente le saut de connection. C'est la « skip connection ». L'entrée $x$ est copiée et « saute » les couches de calcul pour être ajoutée directement plus loin. La sortie finale est donc l'addition des deux chemins :
+Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entraîner des réseaux de neurones profonds sans perdre le signal du gradient. L'entrée $x$ traverse d'abord les couches de calcul. Ce qui est retourné à la fin de ce parcours est la fonction résiduelle $f(x)$.La flèche supérieure représente le saut de connexion. C'est la « skip connection ». L'entrée $x$ est copiée et « saute » les couches de calcul pour être ajoutée directement plus loin. La sortie finale est donc l'addition des deux chemins :
 \[ h(x) = f(x) + x \]
 
 On définit d'abord la sortie d'un bloc
@@ -503,20 +503,20 @@ Une image est composée de plusieurs pixels ayant chacun une valeur d’intensit
     \item \textbf{En bas à droite :} $(4 \cdot 1) + (2 \cdot 0) + (1 \cdot 0) + (6 \cdot 1) = 10$
 \end{enumerate}
 ?
-Note : Cet exemple est grandement inspiré de l'article de Jorge Cardete sur Medium : « Convolutional Neural Networks: A Comprehensive Guide ». SOURCE
+Note : Cet exemple est grandement inspiré de l'article de Jorge Cardete sur Medium : « Convolutional Neural Networks: A Comprehensive Guide » \cite{cardete2024cnn}
 
 
 Lors de l'analyse d’une image, plusieurs noyaux ou « filtres » sont appliqués. Ces filtres correspondent aux poids ($w$) du réseau de neurones. Chaque filtre génère une carte de caractéristiques (feature map) qui est ensuite transmise aux couches suivantes. Dans un contexte plus concret, les filtres vont permettent de trouver des caractéristiques dans une image, par exemple de déterminer le contour d'une personne. La matrice d'entrée peut également inclure du remplissage (padding), consistant à ajouter des zéros sur le contour pour éviter que le noyau ne néglige les valeurs dans les coins. De plus, le noyau peut avoir un pas (stride) différent, déterminant de combien de cases la fenêtre glisse à chaque étape (par exemple, un bond de 1 ou 2 pixels). En résumé, le but d’une couche de convolution est d'extraire des motifs ou des caractéristiques à partir de données d’entrée. Les données produites peuvent ensuite être « aplaties » (flatten) en un vecteur à une dimension pour être traitées par des couches connectées.
 
-Lorsqu'une couche convolutive va sortir ses données, elle peut non seulement être sortit dans un vecteur à une dimensions, mais également sous forme de tenseur pour passer à travers une fonction d'acitvation commme ReLu.
-Alors, un ResNet peut contenir des couches de convolution avec des fonction d'activaiton ReLu, ce qui va permettre de faire des « saut » de connections pour les gradients.
+Lorsqu'une couche convolutive va sortir ses données, elle peut non seulement être sortie dans un vecteur à une dimensions, mais également sous forme de tenseur pour passer à travers une fonction d'activation commme ReLU.
+Alors, un ResNet peut contenir des couches de convolution avec des fonction d'activaiton ReLU, ce qui va permettre de faire des « saut » de connections pour les gradients.
 Dans le cas de la librairie Mediapipe, voici comment le modèle Facemesh permet d'intégrer ces deux types de réseaux de neurones.
 
 
 \begin{enumerate}
-    \item Les tenseurs provenant d'une image sont rapidement réduits à l'aide de couches convolutives. Ce processus est agressif afin de réduire les données du tenseur en des données qui représente une fonctionnalité. Par exemple,le contour autour des yeux.
-    \item Les données sont ensuite passé dans des bloc résiduel qui permettent un réseau de neurone extrêmement profond sans avoir ce soucié des problèmes de gradient qui disparaît.
-    \item Finalement, dans les dernières couche du réseau, un problème de régression est résout afin de retourner les coordonnées des points sur le visage de l'utilisateur.
+    \item Les tenseurs provenant d'une image sont rapidement réduits à l'aide de couches convolutives. Ce processus est agressif afin de réduire les données du tenseur en des données qui représentent une fonctionnalité. Par exemple,le contour autour des yeux.
+    \item Les données sont ensuite passées dans des blocs résiduels qui permettent un réseau de neurone extrêmement profond sans avoir ce soucié des problèmes de gradient qui disparaît.
+    \item Finalement, dans les dernières couches du réseau, un problème de régression est résolu afin de retourner les coordonnées des points sur le visage de l'utilisateur.
 \end{enumerate}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -594,7 +594,7 @@ outputs = layers.Dense(2)(x)
 model = models.Model(inputs, outputs)
 model.summary()
 \end{lstlisting}
-\caption{Architecture du réseau de neurones résiduel pour la régression comme Facemesh.}
+\caption{Architecture du réseau de neurones résiduel pour la régression comme Facemesh. Code généré par Gemini (\href{https://gemini.google.com/share/fc14f3a6bf1c}{https://gemini.google.com/share/fc14f3a6bf1c}).}
 \label{fig:code_resnet}
 \end{figure}
 
@@ -689,7 +689,16 @@ Afin de répondre à cette problématique, \textit{Vora} pourrait évoluer vers 
 
 % BIBLIOGRAPHIE
 \newpage
+% SOURCES UTILISÉES MAIS JAMAIS VRAIMENT MENTIONNÉES
 \nocite{girard2026vora}
+\nocite{bulat2017alignment}
+\nocite{ibm2021cnn}
+\nocite{bytequest2025cnn}
+\nocite{bryce2022resnet}
+\nocite{3b1b2017backprop}
+\nocite{bytequest2025gradient}
+\nocite{devhutt2021vanishing}
+\nocite{sandhu2025resnet}
 \printbibliography
 
 % ANNEXE
@@ -720,7 +729,7 @@ Description du\newline projet & Arthur,\newline François, Maxime & Explications
 Efficacité du\newline filtre DoMA & Arthur & Question de recherche portant sur les filtres dans le large domaine du traitement de signal. \\
 Fonctionnement de\newline MediaPipe & François & Question de recherche portant sur le réseau de neurones derrière MediaPipe et son fonctionnement. \\
 Interface graphique\newline et le cognitif & Maxime & Question de recherche portant sur le dessin d'interfaces graphiques en informatique. \\
-Résultats et\newline discussion & François,\newline Maxime & Interprétation des résultats (François), comparaisons à la littérature (François), analyse des limites du projet (François, Maxime).  \\
+Résultats et\newline discussion & François & Interprétation des résultats, comparaisons à la littérature, analyse des limites du projet.  \\
 Conclusion & Maxime & Rappel des résultats clés, ouverture, approfondissements possibles.\\
 Références & Arthur & Intégration des citations sous format IEEE dans \LaTeX\ avec l'aide de BibTex.\\
 \bottomrule
