@@ -309,7 +309,7 @@ mouvement physiologique, garantissant ainsi la fiabilité de la surveillance de 
 
 Le problème de la détection des points de repère faciaux (Landmarks) en vision par ordinateur a été abordé de multiples manières au cours des trente dernières années. Avant l'émergence des réseaux de neurones, une approche courante pour identifier des objets ou le corps humain reposait sur les structures picturales, qui modélisaient les formes par un assemblage de parties déformables (souvent représentées par des rectangles). Cette méthode s'est toutefois révélée inefficace pour la détection faciale, car elle manquait de la précision nécessaire pour localiser des points dans des zones exigeant une grande précision, comme le contour des yeux ou des paupières.
 
-L'essor des réseaux de neurones, et particulièrement des réseaux de neurones convolutifs (CNN), a permis d'augmenter significativement la précision de ces détections. Notamment, le modèle Face Mesh de Google permet d’identifier plus de 468 points sur le visage. Bien que des nouvelles versions porte des grandes améliorations, ce rapport se concentrera sur le modèle de base, détaillé dans l'étude Real-time Facial Surface Geometry from Monocular Video on Mobile GPUs.\newline
+L'essor des réseaux de neurones, et particulièrement des réseaux de neurones convolutifs (CNN), a permis d'augmenter significativement la précision de ces détections. Notamment, le modèle Face Mesh de Google permet d’identifier plus de 468 points sur le visage. Bien que des nouvelles versions porte des grandes améliorations, ce rapport se concentrera sur le modèle de base, détaillé dans l'étude Real-time Facial Surface Geometry from Monocular Video on Mobile GPUs.(SOURCE)\newline
 Le modèle peut être séparé en plusieurs étapes :
 
 \begin{enumerate}
@@ -414,11 +414,25 @@ Bien que cela soit un exemple simplifié, pour un réseau de neurone à plusieur
 Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entraîner des réseaux de neurones profonds sans perdre le signal du gradient. L'entrée $x$ traverse d'abord les couches de calcul. Ce qui est retourné à la fin de ce parcours est la fonction résiduelle $f(x)$.La flèche supérieure représente le saut de connection. C'est la "skip connection". L'entrée $x$ est copiée et "saute" les couches de calcul pour être ajoutée directement plus loin. La sortie finale est donc l'addition des deux chemins :
 \[ h(x) = f(x) + x \]
 
-Pour entraîner le réseau, on calcule la dérivée de la sortie par rapport à l'entrée. Si on applique la dérivée de l'équation $h(x) = f(x) + x$ :
-\[ \frac{{d}h(x)}{{d}x} = \frac{{d}f(x)}{{d}x} + \frac{{d}x}{{d}x} = f^\prime(x) + 1 \]
+On définit d'abord la sortie d'un bloc
+$$H_k = F(H_{i-1}) + H_{i-1}$$
 
-Si nous reprenons l'exemple donné pour le problème du gradient qui disparaît, on remarque donc que le terme $+1$ permet de garantir que le gradient ne sera jamais inférieur à 1 comme le montre l'équation suivante : 
-\[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (w_L \cdot f^\sigma(z_L) + 1) \cdot \dots \cdot (w_2 \cdot f^\sigma(z_2) + 1) \cdot \frac{\partial a_1}{\partial w_1} \]
+Notons la dérivée partielle pour un bloc :
+$$\frac{\partial H_i}{\partial H_{i-1}} = \frac{\partial F}{\partial H_{i-1}} + 1$$
+
+Pour un réseau à $K$ blocs, le gradient total par rapport au premier bloc est :
+$$\frac{\partial C}{\partial H_1} = \frac{\partial C}{\partial H_K} \cdot \prod_{i=2}^{K} \left( \frac{\partial F_i}{\partial H_{i-1}} + 1 \right)$$
+Donc, 
+$$\frac{\partial C}{\partial H_1} = \frac{\partial C}{\partial H_K} \cdot \prod_{i=2}^{K} (F^\prime_i + 1)$$
+
+Maintenant, si on veut avoir l'impact du premier poids comme dans le premier exemple :
+$$\frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_1} \cdot \frac{\partial H_1}{\partial w_1}$$
+
+$$\frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot \left( \prod_{i=2}^{K} (F^\prime_i + 1) \right) \cdot \frac{\partial F_1}{\partial w_1}$$
+
+$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot (F^\prime_K + 1) \cdot (F^\prime_{K-1} + 1) \cdot \dots \cdot (F^\prime_2 + 1) \cdot \frac{\partial F_1}{\partial w_1} $$
+Si nous reprenons l'exemple donné pour le problème du gradient qui disparaît, on remarque donc que le terme $+1$ permet de garantir que le gradient ne sera jamais inférieur à 1 (en supposant $F^\prime \geq 0$).Le réseau a $L$ couches. On pose que chaque bloc a 2 couches et on remplace $F^\prime$ par les poids réels :
+$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot (w_L \cdot w_{L-1} \cdot \sigma^\prime + 1) \cdot \dots \cdot (w_4 \cdot w_3 \cdot \sigma^\prime + 1) \cdot (w_2 \cdot \sigma^\prime \cdot \sigma^\prime  \cdot a_0) $$
 
 Lors de la rétropropagation, le gradient évite donc de s'annuler dans des multiplications de petites valeurs. La skip connection crée un lien direct qui permet aux premières couches de recevoir un signal clair pour mettre à jour leurs poids, peu importe la profondeur du réseau.
 
@@ -477,13 +491,13 @@ Lors de la rétropropagation, le gradient évite donc de s'annuler dans des mult
 Une image est composée de plusieurs pixels ayant chacun une valeur d’intensité. Prenons l’exemple de la figure 3 où l’entrée est une image et où nous effectuons une convolution :L’astérisque ($*$) représente l’opération de convolution. Le noyau (ou kernel) agit comme une fenêtre glissante qui parcourt l’image d’entrée pour en extraire des caractéristiques. Comme illustré en bleu, chaque valeur de la matrice de sortie est égale à la somme des produits élément par élément des cases respectives :
 
 \begin{enumerate}
-    \item \textbf{En haut à gauche :} $(1 \cdot 1) + (2 \cdot 0) + (4 \cdot 0) + (5 \cdot 1) = 6$
-    \item \textbf{En haut à droite :} $(2 \cdot 1) + (3 \cdot 0) + (5 \cdot 0) + (6 \cdot 1) = 8$
-    \item \textbf{En bas à gauche :} $(4 \cdot 1) + (5 \cdot 0) + (7 \cdot 0) + (8 \cdot 1) = 12$
-    \item \textbf{En bas à droite :} $(5 \cdot 1) + (6 \cdot 0) + (8 \cdot 0) + (9 \cdot 1) = 14$
+    \item \textbf{En haut à gauche :} $(5 \cdot 1) + (2 \cdot 0) + (0 \cdot 0) + (4 \cdot 1) = 9$
+    \item \textbf{En haut à droite :} $(2 \cdot 1) + (1 \cdot 0) + (4 \cdot 0) + (2 \cdot 1) = 4$
+    \item \textbf{En bas à gauche :} $(0 \cdot 1) + (4 \cdot 0) + (3 \cdot 0) + (1 \cdot 1) = 1$
+    \item \textbf{En bas à droite :} $(4 \cdot 1) + (2 \cdot 0) + (1 \cdot 0) + (6 \cdot 1) = 10$
 \end{enumerate}
 
-Note : Cet exemple est grandement inspiré de l'article de Jorge Cardete sur Medium : « Convolutional Neural Networks: A Comprehensive Guide ».
+Note : Cet exemple est grandement inspiré de l'article de Jorge Cardete sur Medium : « Convolutional Neural Networks: A Comprehensive Guide ». SOURCE
 
 
 Lors de l'analyse d’une image, plusieurs noyaux ou « filtres » sont appliqués. Ces filtres correspondent aux poids ($w$) du réseau de neurones. Chaque filtre génère une carte de caractéristiques (feature map) qui est ensuite transmise aux couches suivantes. Dans un contexte plus concret, les filtres vont permettent de trouver des caractéristiques dans une image, par exemple de déterminer le contour d'une personne. La matrice d'entrée peut également inclure du remplissage (padding), consistant à ajouter des zéros sur le contour pour éviter que le noyau ne néglige les valeurs dans les coins. De plus, le noyau peut avoir un pas (stride) différent, déterminant de combien de cases la fenêtre glisse à chaque étape (par exemple, un bond de 1 ou 2 pixels). En résumé, le but d’une couche de convolution est d'extraire des motifs ou des caractéristiques à partir de données d’entrée. Les données produites peuvent ensuite être « aplaties » (flatten) en un vecteur à une dimension pour être traitées par des couches connectées.
