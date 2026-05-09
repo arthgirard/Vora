@@ -5,6 +5,14 @@
 \documentclass{rapportbrebeuf}
 \addbibresource{references.bib}
 \usepackage{epigraph}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{geometry}
 
 \setlength{\epigraphwidth}{0.6\textwidth}
 
@@ -325,21 +333,21 @@ Où $\sigma$ est la fonction d'activation (ex: ReLU).
 
 
 Notons la dérivée partielle pour une couche :
-$$\frac{\partial a_i}{\partial a_{i-1}} = \frac{\partial \sigma(z_i)}{\partial a_{i-1}} + \frac{\partial a_{i-1}}{\partial a_{i-1}} = (\sigma'(z_i) \cdot w_i)$$
+$$\frac{\partial a_i}{\partial a_{i-1}} = \frac{\partial \sigma(z_i)}{\partial a_{i-1}} + \frac{\partial a_{i-1}}{\partial a_{i-1}} = (\sigma^\prime(z_i) \cdot w_i)$$
 
 Alors, pour un réseau de $L$ couches, le gradient par rapport aux premiers poids $w_1$ suit la règle de dérivation en chaîne:
 
 \[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot \frac{\partial a_L}{\partial a_{L-1}}  \cdot \dots \cdot  \frac{\partial a_{2}}{\partial a_1}  \cdot \frac{\partial a_1}{\partial w_1}\]
 
-En remplaçant chaque terme $\frac{\partial a_i}{\partial a_{i-1}}$ par sa valeur calculée ($w_i \cdot \sigma'(z_i)$), on obtient
-$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (w_L \cdot \sigma'(z_L)) \cdot \dots \cdot (w_2 \cdot \sigma'(z_2)) \cdot \frac{\partial a_1}{\partial w_1} $$
+En remplaçant chaque terme $\frac{\partial a_i}{\partial a_{i-1}}$ par sa valeur calculée ($w_i \cdot \sigma^\prime(z_i)$), on obtient
+$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (w_L \cdot \sigma^\prime(z_L)) \cdot \dots \cdot (w_2 \cdot \sigma^\prime(z_2)) \cdot \frac{\partial a_1}{\partial w_1} $$
 
-$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot \left( \prod_{i=2}^{L} \sigma'(z_i) \cdot w_i \right) \cdot \frac{\partial a_1}{\partial w_1} $$
+$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot \left( \prod_{i=2}^{L} \sigma^\prime(z_i) \cdot w_i \right) \cdot \frac{\partial a_1}{\partial w_1} $$
 
 Prenons commme exemple la fonction d'activation ReLU :
 \[ \sigma(z) = \max(0, z) \]
 Sa dérivée est définie par :
-\[ f'(z) = 
+\[ f^\prime(z) = 
 \begin{cases} 
 1 & \text{si } z > 0 \\
 0 & \text{si } z \leq 0
@@ -407,15 +415,21 @@ Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entra
 \[ h(x) = f(x) + x \]
 
 Pour entraîner le réseau, on calcule la dérivée de la sortie par rapport à l'entrée. Si on applique la dérivée de l'équation $h(x) = f(x) + x$ :
-\[ \frac{{d}h(x)}{{d}x} = \frac{{d}f(x)}{{d}x} + \frac{{d}x}{{d}x} = f'(x) + 1 \]
+\[ \frac{{d}h(x)}{{d}x} = \frac{{d}f(x)}{{d}x} + \frac{{d}x}{{d}x} = f^\prime(x) + 1 \]
 
 Si nous reprenons l'exemple donné pour le problème du gradient qui disparaît, on remarque donc que le terme $+1$ permet de garantir que le gradient ne sera jamais inférieur à 1 comme le montre l'équation suivante : 
-\[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (w_L \cdot f'(z_L) + 1) \cdot \dots \cdot (w_2 \cdot f'(z_2) + 1) \cdot \frac{\partial a_1}{\partial w_1} \]
+\[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (w_L \cdot f^\sigma(z_L) + 1) \cdot \dots \cdot (w_2 \cdot f^\sigma(z_2) + 1) \cdot \frac{\partial a_1}{\partial w_1} \]
 
 Lors de la rétropropagation, le gradient évite donc de s'annuler dans des multiplications de petites valeurs. La skip connection crée un lien direct qui permet aux premières couches de recevoir un signal clair pour mettre à jour leurs poids, peu importe la profondeur du réseau.
 
-\break
-
+% \break
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.9\linewidth]{convolution.png}
+%     \caption{Exemple de convolution}
+%     \label{fig:placeholder}
+% \end{figure}
+\usetikzlibrary{matrix, positioning, arrows.meta}
 \begin{figure}[htbp]
     \begin{tikzpicture}[
         cell/.style={rectangle, draw=black, minimum size=8mm, anchor=center},
@@ -485,7 +499,52 @@ Dans le cas de la librairie Mediapipe, voici comment le modèle Facemesh permet 
     \item Finalement, dans les dernières couche du réseau, un problème de régression est résout afin de retourner les coordonnées des points sur le visage de l'utilisateur.
 \end{enumerate}
 
-Voici un petit code python qui permet simplifier la logique du réseau de neurone de FaceMesh lors d'une propagation vers l'avant.
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{medblue}{rgb}{0.0,0.45,0.74}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+% Bibliothèques TikZ essentielles
+\usetikzlibrary{calc, positioning, shapes.geometric, arrows.meta, fit, backgrounds}
+
+La figure 5 montre un petit code python qui permet simplifier la logique du réseau de neurone de FaceMesh lors d'une propagation vers l'avant.
+
+\textbf{Explication du code :}
+\begin{enumerate}
+    \item \textbf{Importation :} On importe la librairie TensorFlow qui permet de créer et d'entraîner des réseaux de neurones.
+    \item \textbf{Entrée :} Initialisation de la variable d'entrée. Elle reçoit l'image en format $64 \times 64$ pixels.
+    \item \textbf{Convolutions agressives :}
+    \begin{itemize}
+        \item \textbf{Première couche :} Elle reçoit l'image et applique $32$ filtres de taille $3 \times 3$. Ensuite, la fonction d'activation {ReLU} est appliquée sur tous les éléments.
+        \item \textbf{Deuxième couche :} Le nouveau tenseur passe par une autre convolution avec $64$ filtres de taille $3 \times 3$.
+    \end{itemize}
+    \item \textbf{Bloc résiduel :} Ce bloc effectue une convolution et additionne l'entrée au résultat ($h(x) = f(x) + x$). Cela permet de garder l'information d'origine à travers les couches.
+    \item \textbf{Régression finale :}
+    \begin{itemize}
+        \item \textbf{Moyenne :} Cette ligne calcule la moyenne de toutes les cartes générées par les filtres pour simplifier les données.
+        \item \textbf{Sortie :} La dernière couche possède $2$ neurones, qui correspondent aux coordonnées $x$ et $y$ des pixels que l'on veut prédire.
+    \end{itemize}
+\end{enumerate}
+
 \begin{figure}[htbp]
 \centering
 \begin{lstlisting}[
@@ -517,23 +576,6 @@ model.summary()
 \caption{Architecture du réseau de neurones résiduel pour la régression comme Facemesh.}
 \label{fig:code_resnet}
 \end{figure}
-
-\textbf{Explication du code :}
-\begin{enumerate}
-    \item \textbf{Importation :} On importe la librairie TensorFlow qui permet de créer et d'entraîner des réseaux de neurones.
-    \item \textbf{Entrée :} Initialisation de la variable d'entrée. Elle reçoit l'image en format $64 \times 64$ pixels.
-    \item \textbf{Convolutions agressives :}
-    \begin{itemize}
-        \item \textbf{Première couche :} Elle reçoit l'image et applique $32$ filtres de taille $3 \times 3$. Ensuite, la fonction d'activation {ReLU} est appliquée sur tous les éléments.
-        \item \textbf{Deuxième couche :} Le nouveau tenseur passe par une autre convolution avec $64$ filtres de taille $3 \times 3$.
-    \end{itemize}
-    \item \textbf{Bloc résiduel :} Ce bloc effectue une convolution et additionne l'entrée au résultat ($h(x) = f(x) + x$). Cela permet de garder l'information d'origine à travers les couches.
-    \item \textbf{Régression finale :}
-    \begin{itemize}
-        \item \textbf{Moyenne :} Cette ligne calcule la moyenne de toutes les cartes générées par les filtres pour simplifier les données.
-        \item \textbf{Sortie :} La dernière couche possède $2$ neurones, qui correspondent aux coordonnées $x$ et $y$ des pixels que l'on veut prédire.
-    \end{itemize}
-\end{enumerate}
 
 \newpage
 \subsection{Interface graphique et ergonomie cognitive (Maxime Vanseveren)}
