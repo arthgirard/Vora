@@ -335,14 +335,11 @@ Soient :
 \[ a_i = \sigma(z_i) \quad \text{où} \quad z_i = w_i \cdot a_{i-1} + b \]
 
 Où $\sigma$ est la fonction d'activation (ex: ReLU).
-\[ a_i = f(z_i) \quad \text{où} \quad z_i = w_i \cdot a_{i-1} + b \]
-
 
 Notons la dérivée partielle pour une couche :
-$$\frac{\partial a_i}{\partial a_{i-1}} = \frac{\partial \sigma(z_i)}{\partial a_{i-1}} + \frac{\partial a_{i-1}}{\partial a_{i-1}} = (\sigma^\prime(z_i) \cdot w_i)$$
+$$\frac{\partial a_i}{\partial a_{i-1}} = \frac{\partial a_i}{\partial z_{i}} \cdot \frac{\partial z_{i}}{\partial a_{i-1}} = (\sigma^\prime(z_i) \cdot w_i)$$
 
-Alors, pour un réseau de $L$ couches, le gradient par rapport aux premiers poids $w_1$ suit la règle de dérivation en chaîne:
-
+Pour un réseau de $L$ couches, la dérivée partielle de la fonction de coût $C$ (ex: MSE) par rapport à un poids spécifique $w_1$ est obtenue par la règle de dérivation en chaîne. Le \[ \frac{\partial C}{\partial w_1}\] représente une composante du gradient $w_1$ qui fait partie du $\nabla_{\mathbf{w}} C$ utilisé pour la descente de gradient pour minimiser un $w$ quelconque. Donc,
 \[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot \frac{\partial a_L}{\partial a_{L-1}}  \cdot \dots \cdot  \frac{\partial a_{2}}{\partial a_1}  \cdot \frac{\partial a_1}{\partial w_1}\]
 
 En remplaçant chaque terme $\frac{\partial a_i}{\partial a_{i-1}}$ par sa valeur calculée ($w_i \cdot \sigma^\prime(z_i)$), on obtient
@@ -353,7 +350,7 @@ $$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot \left
 Prenons commme exemple la fonction d'activation ReLU :
 \[ \sigma(z) = \max(0, z) \]
 Sa dérivée est définie par :
-\[ f^\prime(z) = 
+\[ \sigma^\prime(z) = 
 \begin{cases} 
 1 & \text{si } z > 0 \\
 0 & \text{si } z \leq 0
@@ -367,7 +364,7 @@ Posons que $L=50$ couches (ou un réseau de neurone profond quelconque) :
 
 \[ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial a_L} \cdot (0,5)^{49} \cdot \frac{\partial a_1}{\partial w_1} \]
 
-Le gradient \textbf{« disparaît »}, il devient une valeur minime : 
+Le gradient « disparaît » (la composante pour $w_1$), il devient une valeur minime : 
 \[ (0,5)^{49} \approx 10^{-15} \]
 
 Lorsqu'on met à jour $w_1$, il n'y a presque pas de différence. Le gradient devient « invisible » :
@@ -420,26 +417,23 @@ Bien que cela soit un exemple simplifié, pour un réseau de neurone à plusieur
 Ce schéma représente un bloc résiduel. C'est ce mécanisme qui permet d'entraîner des réseaux de neurones profonds sans perdre le signal du gradient. L'entrée $x$ traverse d'abord les couches de calcul. Ce qui est retourné à la fin de ce parcours est la fonction résiduelle $f(x)$.La flèche supérieure représente le saut de connexion. C'est la « skip connection ». L'entrée $x$ est copiée et « saute » les couches de calcul pour être ajoutée directement plus loin. La sortie finale est donc l'addition des deux chemins :
 \[ h(x) = f(x) + x \]
 
-On définit d'abord la sortie d'un bloc
-$$H_k = F(H_{i-1}) + H_{i-1}$$
-
-Notons la dérivée partielle pour un bloc :
-$$\frac{\partial H_i}{\partial H_{i-1}} = \frac{\partial F}{\partial H_{i-1}} + 1$$
+On définit la sortie d'un bloc $i$ (dans un réseau composé de $K$ blocs successifs) par :$$H_i = F_i(H_{i-1}) + H_{i-1}$$Où $F_i$ représente ce que retourne les couches internes du bloc. En dérivant par rapport à l'entrée du bloc, on obtient la dérivée partielle:
+$$\frac{\partial H_i}{\partial H_{i-1}} = \frac{\partial F_i}{\partial H_{i-1}} + 1$$
 
 Pour un réseau à $K$ blocs, le gradient total par rapport au premier bloc est :
 $$\frac{\partial C}{\partial H_1} = \frac{\partial C}{\partial H_K} \cdot \prod_{i=2}^{K} \left( \frac{\partial F_i}{\partial H_{i-1}} + 1 \right)$$
 Donc, 
 $$\frac{\partial C}{\partial H_1} = \frac{\partial C}{\partial H_K} \cdot \prod_{i=2}^{K} (F^\prime_i + 1)$$
 
-Maintenant, si on veut avoir l'impact du premier poids comme dans le premier exemple :
+Maintenant, si on veut avoir l'impact du premier poids comme dans le premier exemple:
 $$\frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_1} \cdot \frac{\partial H_1}{\partial w_1}$$
 
 $$\frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot \left( \prod_{i=2}^{K} (F^\prime_i + 1) \right) \cdot \frac{\partial F_1}{\partial w_1}$$
 
 $$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot (F^\prime_K + 1) \cdot (F^\prime_{K-1} + 1) \cdot \dots \cdot (F^\prime_2 + 1) \cdot \frac{\partial F_1}{\partial w_1} $$
 Si nous reprenons l'exemple donné pour le problème du gradient qui disparaît, on remarque donc que le terme $+1$ permet de garantir que le gradient ne sera jamais inférieur à 1 (en supposant $F^\prime \geq 0$).Le réseau a $L$ couches. On pose que chaque bloc a 2 couches et on remplace $F^\prime$ par les poids réels :
-$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot (w_L \cdot w_{L-1} \cdot \sigma^\prime + 1) \cdot \dots \cdot (w_4 \cdot w_3 \cdot \sigma^\prime + 1) \cdot (w_2 \cdot \sigma^\prime \cdot \sigma^\prime  \cdot a_0) $$
 
+$$ \frac{\partial C}{\partial w_1} = \frac{\partial C}{\partial H_K} \cdot \prod_{i=2}^{K} \left( w_{2i} \cdot \sigma^\prime(z_{2i}) \cdot w_{2i-1} \cdot \sigma^\prime(z_{2i-1}) + 1 \right) \cdot \left( w_2 \cdot \sigma^\prime(z_2) \cdot \sigma^\prime(z_1) \cdot a_0 \right) $$
 Lors de la rétropropagation, le gradient évite donc de s'annuler dans des multiplications de petites valeurs. La skip connection crée un lien direct qui permet aux premières couches de recevoir un signal clair pour mettre à jour leurs poids, peu importe la profondeur du réseau.
 
 % \break
